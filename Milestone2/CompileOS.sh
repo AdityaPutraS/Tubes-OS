@@ -25,5 +25,9 @@ as86 lib.asm -o lib_asm.o
 bcc -ansi -c -o shell.o shell.c
 ld86 -o shell -d shell.o lib_asm.o
 ./loadFile shell
+echo load utilitas
+bcc -ansi -c -o echoUtil.o echoUtil.c
+ld86 -o echoUtil -d echoUtil.o lib_asm.o
+./loadFile echoUtil
 echo Load bochs
 bochs -f opsys.bxrc

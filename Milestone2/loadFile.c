@@ -121,10 +121,6 @@ int main (int argc, char* argv[]) {
     while (!feof(loadFile)) {
       int sector = findUnusedSector(map);
       if (sector != NOT_FOUND) {
-        if(sector <= 16)
-        {
-          sector = sector + 6;
-        }
         copySector(loadFile, sectorCount, floppy, sector);
         printf("Loaded %s to sector %d\n", argv[1], sector);
         map[sector] = 0xFF;
