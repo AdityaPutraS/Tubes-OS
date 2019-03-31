@@ -38,11 +38,11 @@ void executeProgram(char *path, int segment, int *result, char parentIndex);
 void printStringXY(char *string, int color, int x, int y);
 void printInt(int i, int newLine);
 void printChar(char c, int newLine);
-void split(char *string, char separator, char **splitted);
+void split(char *string, char separator, char splitted[32][15]);
 void len(char *string, int *length);
 void isSame(char *s1, char *s2, char *result);
 void copy(char *string, char *copied, int start, int length);
-void search(char *sector, char awal, char *sisanya, char *index, char *success);
+void search(char *sector, char awal, char sisanya[15], char *index, char *success);
 void searchDir(char *dirs, char *relPath, char *index, char *success, char parentIndex);
 void searchFile(char *dirs, char *file, char *relPath, char *index, char *success, char parentIndex);
 void splitDirFilePath(char *path, char *dirPath, char *fileName);
@@ -60,25 +60,17 @@ void replace(char *s, char cari, char tukar);
 
 int main()
 {
-	char buffer[SECTOR_SIZE * MAX_SECTORS];
-	int suc;
-	//char argv[64][128];
+	//char buffer[SECTOR_SIZE * MAX_SECTORS];
+	char suc;
+	char pathSplitted[MAX_DIRS][MAX_DIRSNAME];
 	makeInterrupt21();
 	//printLogo();
-	// clear(argv[0],3);
-	// clear(argv[1],3);
-	// clear(argv[2],3);
-	// copy("CO1",argv[0],0,3);
-	// copy("CO2",argv[1],0,3);
-	// copy("CO3",argv[2],0,3);
-	// //replace(argv, 0x20, 0x00);
-	// printString("argv main : ", FALSE);
-	// printString(argv[0], TRUE);
-	// printString("argv main : ", FALSE);
-	// printString(argv[1], TRUE);
-	// printString("argv main : ", FALSE);
-	// printString(argv[2], TRUE);
-	// putArgs(0x00, 0x3, argv);
+	// makeDirectory("test",&suc, 0xFF);
+	// makeDirectory("cok", &suc, 0xFF);
+	// makeDirectory("test/a", &suc, 0xFF);
+	// makeDirectory("cok/basd", &suc, 0xFF);
+	// makeDirectory("test/a", &suc, 0xFF);
+	putArgs(0xFF, 0, 0);
 	interrupt(0x21, 0xFF << 8 | 0x6, "shell", 0x2000, &suc);
 	while (1)
 	{
@@ -87,16 +79,16 @@ int main()
 
 void replace(char *s, char cari, char tukar)
 {
-    int length, i;
-    len(s, &length);
-    for(i = 0; i < length; i++)
-    {
-        if(s[i] == cari)
-        {
-            s[i] = tukar;
-        }
-    }
-    s[length] = '\0';
+	int length, i;
+	len(s, &length);
+	for (i = 0; i < length; i++)
+	{
+		if (s[i] == cari)
+		{
+			s[i] = tukar;
+		}
+	}
+	s[length] = '\0';
 }
 
 void printStringXY(char *string, int color, int x, int y)
@@ -219,7 +211,7 @@ void printInt(int i, int newLine)
 	digit[7] = '0';
 	digit[8] = '0';
 	digit[9] = '\0';
-	j = 9;
+	j = 8;
 	while (i != 0 && j >= 0)
 	{
 		digit[j] = '0' + mod(i, 10);
@@ -245,11 +237,11 @@ void readString(char *string)
 		{
 			if (c == '\b')
 			{
-				interrupt(0x10, 0xE00 + '\b', 0, 0, 0);
-				interrupt(0x10, 0xE00 + '\0', 0, 0, 0);
-				interrupt(0x10, 0xE00 + '\b', 0, 0, 0);
 				if (i > 0)
 				{
+					interrupt(0x10, 0xE00 + '\b', 0, 0, 0);
+					interrupt(0x10, 0xE00 + '\0', 0, 0, 0);
+					interrupt(0x10, 0xE00 + '\b', 0, 0, 0);
 					string[i] = '\0';
 					i = i - 1;
 				}
@@ -294,12 +286,13 @@ void writeSector(char *buffer, int sector)
 	interrupt(0x13, 0x301, buffer, div(sector, 36) * 0x100 + mod(sector, 18) + 1, mod(div(sector, 18), 2) * 0x100);
 }
 
-void split(char *string, char separator, char **splitted)
+void split(char *string, char separator, char splitted[32][15])
 {
 	int i, j, k;
 	i = 0;
 	j = 0;
 	k = 0;
+    clear(splitted[0], 15);
 	while (string[i] != '\0')
 	{
 		if (string[i] == separator)
@@ -307,6 +300,7 @@ void split(char *string, char separator, char **splitted)
 			splitted[j][k] = '\0';
 			j += 1;
 			k = 0;
+            clear(splitted[j], 15);
 		}
 		else
 		{
@@ -355,7 +349,7 @@ void isSame(char *s1, char *s2, char *result)
 		}
 		i += 1;
 	}
-	if(s1[i] != '\0' || s2[i] != '\0')
+	if (s1[i] != '\0' || s2[i] != '\0')
 	{
 		tempResult = FALSE;
 	}
@@ -364,9 +358,18 @@ void isSame(char *s1, char *s2, char *result)
 
 void copy(char *string, char *copied, int start, int length)
 {
-	int lenS, i;
+	int lenS, lenC, i;
 	len(string, &lenS);
-	clear(copied, lenS);
+	len(copied, &lenC);
+	clear(copied, lenC);
+	if (lenS < length)
+	{
+		clear(copied, lenS);
+	}
+	else
+	{
+		clear(copied, length);
+	}
 	//Validasi start
 	if (start < lenS)
 	{
@@ -383,33 +386,39 @@ void copy(char *string, char *copied, int start, int length)
 	}
 }
 
-void search(char *sector, char awal, char *sisanya, char *index, char *success)
+void search(char *sector, char awal, char sisanya[15], char *index, char *success)
 {
-	int i;
-	char copied[15], ketemu;
+	int i, j;
+	char copied[15];
+	clear(copied, 15);
 	*success = FALSE;
-	ketemu = FALSE;
-	i = 0;
 	*index = 0;
-	while (*index < 32)
+	// printString("Masuk search , cari : ", FALSE);
+	// printString(sisanya, TRUE);
+	for(i = 0; (i < 32) && !(*success); i++)
 	{
-		if (sector[*index * 16] == awal)
-		{
-			copy(sector + (*index * 16), copied, 1, 15);
-			isSame(copied, sisanya, success);
-			if (*success)
+		if(sector[i*16] == awal){
+			//Kopi sebagian dr sektor
+			clear(copied, 15);
+			for(j =0; j < 15; j++)
 			{
-				break;
+				copied[j] = sector[i*16+j+1];
 			}
+			// printInt(i, TRUE);
+			// printString("V", TRUE);
+			// printString(copied, TRUE);
+			isSame(copied, sisanya, success);
 		}
-		*index = *index + 1;
 	}
+	// printString("SELESAI", TRUE);
+	*index = i-1;
 }
 
 void searchDir(char *dirs, char *relPath, char *index, char *success, char parentIndex)
 {
 	int i, pathLength, countSlash;
 	char pathSplitted[MAX_DIRS][MAX_DIRSNAME];
+	char cari[MAX_DIRSNAME];
 	if (relPath[0] == '\0')
 	{
 		*success = TRUE;
@@ -419,13 +428,27 @@ void searchDir(char *dirs, char *relPath, char *index, char *success, char paren
 	{
 		//Split path
 		len(relPath, &pathLength);
-		count(relPath, "/", &countSlash);
-		split(relPath, "/", pathSplitted);
+		count(relPath, '/', &countSlash);
+		split(relPath, '/', pathSplitted);
+		// printString("isi 0 : ", FALSE);
+		// printString(pathSplitted[0], TRUE);
+		// printString("isi 1 : ", FALSE);
+		// printString(pathSplitted[1], TRUE);
+		// printString("count slash : ", FALSE);
+		// printInt(countSlash, TRUE);
 		*success = TRUE;
 		for (i = 0; (i < (countSlash + 1)) && *success; i++)
 		{
-			search(dirs, parentIndex, pathSplitted[i], index, success);
-			parentIndex = pathSplitted[i];
+			// printString("pathSplitted skrng : ", FALSE);
+			// printString(pathSplitted[i], TRUE);
+			clear(cari, 15);
+			copy(pathSplitted[i], cari,0,15);
+			search(dirs, parentIndex, cari, index, success);
+			if(!success)
+			{
+				// printString("BANGSAT", TRUE);
+			}
+			parentIndex = *index;
 		}
 	}
 }
@@ -544,7 +567,7 @@ void writeFile(char *buffer, char *path, int *sectors, char parentIndex)
 	}
 	len(buffer, lenBuffer);
 	divBuffSec = div(lenBuffer, SECTOR_SIZE);
-	if(divBuffSec <= 0)
+	if (divBuffSec <= 0)
 	{
 		divBuffSec = 1;
 	}
@@ -648,40 +671,50 @@ void makeDirectory(char *path, int *result, char parentIndex)
 	int iterDirs, temp, idxParent;
 	char succ;
 	readSector(dirs, DIRS_SECTOR);
-	for (iterDirs = 0; (iterDirs < SECTOR_SIZE) && (dirs[iterDirs] != '\0'); iterDirs++)
+	for (iterDirs = 0; (iterDirs < MAX_DIRS) && (dirs[iterDirs * (MAX_DIRSNAME + 1) + 1] != 0x00); iterDirs++)
 	{
 	}
 	if (iterDirs == SECTOR_SIZE)
 	{
 		*result = INSUFFICIENT_ENTRIES;
+		// printString("INSUFFICIENT_ENTRIES", TRUE);
 	}
 	else
 	{
+		clear(dirPath, MAX_DIRS*(MAX_DIRSNAME+1));
+		clear(folderName, MAX_DIRSNAME);
 		splitDirFilePath(path, dirPath, folderName);
 		//cek apakah parent dari foldernya ada
+		// printString("cari parent yang path : ", FALSE);
+		// printString(dirPath, TRUE);
 		searchDir(dirs, dirPath, &idxParent, &succ, parentIndex);
 		if (succ)
 		{
 			//cek apakah sudah ada foldernya
+			// printString("cari folder yang path : ", FALSE);
+			// printString(path, TRUE);
 			searchDir(dirs, path, &temp, &succ, parentIndex);
 			if (succ)
 			{
 				*result = ALREADY_EXISTS;
+				// printString("ALREADY_EXISTS", TRUE);
 			}
 			else
 			{
-				dirs[iterDirs] = idxParent;
-				len(folderName, lenFolderName);
+				dirs[iterDirs * (MAX_DIRSNAME + 1)] = idxParent;
+				len(folderName, &lenFolderName);
 				for (temp = 0; temp < lenFolderName; temp++)
 				{
 					dirs[iterDirs * (MAX_DIRSNAME + 1) + temp + 1] = folderName[temp];
 				}
+				writeSector(dirs, DIRS_SECTOR);
 				*result = 0; //Success
 			}
 		}
 		else
 		{
 			*result = NOT_FOUND;
+			// printString("NOT_FOUND", TRUE);
 		}
 	}
 }

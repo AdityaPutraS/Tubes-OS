@@ -1,9 +1,6 @@
 #define TRUE 1
 #define FALSE 0
 
-void pS(char *string, int newLine);
-void pI(int i, int newLine);
-
 int main()
 {
     int i;

@@ -1,5 +1,6 @@
 #define TRUE 1
 #define FALSE 0
+#define EMPTY 0x00
 
 #define echo 1
 #define cd 2
@@ -22,6 +23,7 @@ int getCommandType(char *string);
 void concat(char *s1, char *s2, char isiNull, int len1);
 void replace(char *s, char cari, char tukar);
 void split(char *string, char separator, char splitted[64][128]);
+void clear(char *buffer, int length);
 
 int main()
 {
@@ -34,79 +36,135 @@ int main()
     char argc, succ;
     char argv[64][128];
     isExit = FALSE;
-    while (!isExit)
+    // while (!isExit)
+    // {
+    //Get input user
+    interrupt(0x21, (0 << 8) | 0x0, "$ ", 0, 0);
+    interrupt(0x21, (0 << 8) | 0x1, &input, 0, 0);
+    len(input, &inputLen);
+    count(input, 0x20, &splitLen);
+    //Get curdir
+    interrupt(0x21, 0x21, &curDir, 0, 0);
+    pS("curDir : ", FALSE);
+    if (curDir == 0x00)
     {
-        //Get input user
-        interrupt(0x21, (0 << 8) | 0x0, "$ ", 0, 0);
-        interrupt(0x21, (0 << 8) | 0x1, &input, 0, 0);
-        len(input, &inputLen);
-        count(input, 0x20, &splitLen);
-        //Get curdir
-        interrupt(0x21, 0x21, &curDir, 0, 0);
-        //Get type commandnya
-        type = getCommandType(input);
-        if (type == echo)
+        pS("di 0", TRUE);
+    }
+    else if (curDir == 0xFF)
+    {
+        pS("di Root", TRUE);
+    }
+    else
+    {
+        pI(curDir, TRUE);
+    }
+    //Get type commandnya
+    type = getCommandType(input);
+    //Get argc dan argv nya
+    argc = splitLen;
+    split(input, 0x20, argv);
+    if (type == echo)
+    {
+        pS("Command echo", TRUE);
+        interrupt(0x21, 0x20, curDir, argc, argv + 1);
+        interrupt(0x21, curDir << 8 | 0x6, "echoUtil", 0x2000, &succ);
+    }
+    else if (type == cd)
+    {
+        pS("Command echo", TRUE);
+    }
+    else if (type == ls)
+    {
+        pS("Command ls", TRUE);
+        if (argc != 0)
         {
-            argc = splitLen;
-            split(input, 0x20, argv);
-            interrupt(0x21, 0x20, curDir, argc, argv+1);
-            interrupt(0x21, 0xFF << 8 | 0x6, "echoUtil", 0x2000, &succ);
+            pS("ls tidak menerima parameter apapun", TRUE);
         }
-        else if (type == cd)
+        else
         {
+            interrupt(0x21, 0x20, curDir, argc, argv + 1);
+            // pS("argv : ", FALSE);
+            // pS(argv[0],TRUE);
+            interrupt(0x21, curDir << 8 | 0x6, "ls", 0x2000, &succ);
         }
-        else if (type == ls)
+    }
+    else if (type == mkdir)
+    {
+        //TODO : mkdir bisa banyak parameter
+        pS("Command mkdir", TRUE);
+        if (argc != 1)
         {
+            pS("Jumlah parameter mkdir harus 1", TRUE);
         }
-        else if (type == mkdir)
+        else
         {
+            interrupt(0x21, 0x20, curDir, argc, argv + 1);
+            // pS("argv : ", FALSE);
+            // pS(argv[0],TRUE);
+            interrupt(0x21, curDir << 8 | 0x6, "mkdir", 0x2000, &succ);
         }
-        else if (type == rm)
-        {
-        }
-        else if (type == cat)
-        {
-        }
-        else if (type == runLocal)
-        {
-        }
-        else if (type == runGlobal)
-        {
-        }
+    }
+    else if (type == rm)
+    {
+        pS("Command rm", TRUE);
+    }
+    else if (type == cat)
+    {
+        pS("Command cat", TRUE);
+    }
+    else if (type == runLocal)
+    {
+        pS("Command runLocal", TRUE);
+    }
+    else if (type == runGlobal)
+    {
+        pS("Command runGlobal", TRUE);
+    }
+    // }
+}
+
+void clear(char *buffer, int length)
+{
+    int i;
+    for (i = 0; i < length; ++i)
+    {
+        buffer[i] = EMPTY;
     }
 }
 
 void split(char *string, char separator, char splitted[64][128])
 {
-	int i, j, k;
-	i = 0;
-	j = 0;
-	k = 0;
-	while (string[i] != '\0')
-	{
-		if (string[i] == separator)
-		{
-			splitted[j][k] = '\0';
-			j += 1;
-			k = 0;
-		}
-		else
-		{
-			splitted[j][k] = string[i];
-			k += 1;
-		}
-		i += 1;
-	}
-	splitted[j][k] = '\0';
+    int i, j, k;
+    i = 0;
+    j = 0;
+    k = 0;
+    clear(splitted[0], 128);
+    while (string[i] != '\0')
+    {
+        if (string[i] == separator)
+        {
+            splitted[j][k] = '\0';
+            j += 1;
+            k = 0;
+            clear(splitted[j], 128);
+        }
+        else
+        {
+            splitted[j][k] = string[i];
+            k += 1;
+        }
+        i += 1;
+    }
+    splitted[j][k] = '\0';
 }
 
 void replace(char *s, char cari, char tukar)
 {
     int length, i;
     len(s, &length);
-    for(i = 0; i < length; i++)
+    for (i = 0; i < length; i++)
     {
-        if(s[i] == cari)
+        if (s[i] == cari)
         {
             s[i] = tukar;
         }
@@ -118,12 +176,12 @@ void concat(char *s1, char *s2, char isiNull, int len1)
 {
     int i;
     i = 0;
-    while(s2[i] != '\0')
+    while (s2[i] != '\0')
     {
-        s1[len1+i+isiNull] = s2[i];
-        i+=1;
+        s1[len1 + i + isiNull] = s2[i];
+        i += 1;
     }
-    s1[len1+i+isiNull] = '\0';
+    s1[len1 + i + isiNull] = '\0';
 }
 
 int getCommandType(char *s)
