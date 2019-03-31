@@ -107,6 +107,17 @@ int main()
     else if (type == rm)
     {
         pS("Command rm", TRUE);
+        if (argc != 1)
+        {
+            pS("Jumlah parameter rm harus 1", TRUE);
+        }
+        else
+        {
+            interrupt(0x21, 0x20, curDir, argc, argv + 1);
+            // pS("argv : ", FALSE);
+            // pS(argv[0],TRUE);
+            interrupt(0x21, curDir << 8 | 0x6, "rm", 0x2000, &succ);
+        }
     }
     else if (type == cat)
     {

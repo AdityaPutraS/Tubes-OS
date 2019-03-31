@@ -11,7 +11,6 @@ void pS(char *string, int newLine);
 void pI(int i, int newLine);
 void pC(char c, int newLine);
 void clear(char *buffer, int length);
-void copy(char *string, char *copied, int start, int length);
 
 int main()
 {

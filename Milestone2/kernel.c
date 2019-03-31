@@ -34,7 +34,7 @@ void readFile(char *buffer, char *path, int *result, char parentIndex);
 void clear(char *buffer, int length);
 void writeFile(char *buffer, char *path, int *sectors, char parentIndex);
 void executeProgram(char *path, int segment, int *result, char parentIndex);
-// void printLogo();
+void printLogo();
 void printStringXY(char *string, int color, int x, int y);
 void printInt(int i, int newLine);
 void printChar(char c, int newLine);
@@ -64,12 +64,20 @@ int main()
 	char suc;
 	char pathSplitted[MAX_DIRS][MAX_DIRSNAME];
 	makeInterrupt21();
-	//printLogo();
-	// makeDirectory("test",&suc, 0xFF);
-	// makeDirectory("cok", &suc, 0xFF);
-	// makeDirectory("test/a", &suc, 0xFF);
-	// makeDirectory("cok/basd", &suc, 0xFF);
-	// makeDirectory("test/a", &suc, 0xFF);
+	printLogo();
+	makeDirectory("bgst",&suc, 0xFF);
+	makeDirectory("test",&suc, 0xFF);
+	makeDirectory("cok", &suc, 0xFF);
+	makeDirectory("test/a", &suc, 0xFF);
+	makeDirectory("cok/basd", &suc, 0xFF);
+	makeDirectory("cok/basd/asdd", &suc, 0xFF);
+	makeDirectory("test/a", &suc, 0xFF);
+	deleteDirectory("test", &suc, 0xFF);
+	makeDirectory("kl",&suc, 0xFF);
+	makeDirectory("abcdefghijklmno",&suc, 0xFF);
+	deleteDirectory("test", &suc, 0xFF);
+	deleteDirectory("kl", &suc, 0xFF);
+	//interrupt(0x21, 0xFF << 8 | 0x0, "SELESAI BOIS", 1 ,0);
 	putArgs(0xFF, 0, 0);
 	interrupt(0x21, 0xFF << 8 | 0x6, "shell", 0x2000, &suc);
 	while (1)
@@ -497,10 +505,12 @@ void readAllSector(char *dirs, char *file, char *map, char *sector)
 }
 void writeAllSector(char *dirs, char *file, char *map, char *sector)
 {
+	// printString("TULIS KE SEKTOR", TRUE);
 	writeSector(dirs, DIRS_SECTOR);
 	writeSector(file, FILES_SECTOR);
 	writeSector(map, MAP_SECTOR);
 	writeSector(sector, SECTORS_SECTOR);
+	// printString("SELESAI TULIS KE SEKTOR", TRUE);
 }
 
 void readFile(char *buffer, char *path, int *result, char parentIndex)
@@ -707,6 +717,10 @@ void makeDirectory(char *path, int *result, char parentIndex)
 				{
 					dirs[iterDirs * (MAX_DIRSNAME + 1) + temp + 1] = folderName[temp];
 				}
+				if(lenFolderName < 15)
+				{
+					dirs[iterDirs * (MAX_DIRSNAME + 1) + temp + 1] = '\0';
+				}
 				writeSector(dirs, DIRS_SECTOR);
 				*result = 0; //Success
 			}
@@ -728,11 +742,12 @@ void deleteFile(char *path, int *result, char parentIndex)
 	searchFile(dirs, file, path, &idxFile, &succ, parentIndex);
 	if (succ)
 	{
-		file[idxFile * MAX_FILENAME] = '\0';
-		for (iterSector = 0; (iterSector < MAX_SECTORS) && (sector[idxFile * MAX_SECTORS + iterSector] != 0x00); iterSector++)
+		file[idxFile * (MAX_FILENAME+1)] = 0x00;
+		file[(idxFile*(MAX_FILENAME+1))+1] = 0x00;
+		for (iterSector = 0; (iterSector < MAX_SECTORS) && (sector[idxFile*MAX_SECTORS + iterSector] != 0x00); iterSector++)
 		{
-			map[sector[idxFile * MAX_SECTORS + iterSector]] = 0x00;
-			sector[idxFile * MAX_SECTORS + iterSector] = 0x00;
+			map[sector[idxFile*MAX_SECTORS + iterSector]] = 0x00;
+			sector[idxFile*MAX_SECTORS + iterSector] = 0x00;
 		}
 		writeAllSector(dirs, file, map, sector);
 		*result = 0; //Success
@@ -743,41 +758,77 @@ void deleteFile(char *path, int *result, char parentIndex)
 	}
 }
 
-// void printLogo()
-// {
-// 	printStringXY("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *", 0xD, 0, 0);
-// 	printStringXY("* ______  _                     _   _                 _____        _  *", 0xD, 0, 1);
-// 	printStringXY("* | ___ \\(_)                   | \\ | |               |  _  |      (_) *", 0xD, 0, 2);
-// 	printStringXY("* | |_/ / _  _ __ ___    ___   |  \\| |  ___   _ __   | | | | _ __  _  *", 0xD, 0, 3);
-// 	printStringXY("* | ___ \\| || '_ ` _ \\  / _ \\  | . ` | / _ \\ | '_ \\  | | | || '__|| | *", 0xD, 0, 4);
-// 	printStringXY("* | |_/ /| || | | | | || (_) | | |\\  || (_) || | | | \\ \\_/ /| |   | | *", 0xD, 0, 5);
-// 	printStringXY("* \\____/ |_||_| |_| |_| \\___/  \\_| \\_/ \\___/ |_| |_|  \\___/ |_|   |_| *", 0xD, 0, 6);
-// 	printStringXY("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *", 0xD, 0, 7);
-// }
+void printLogo()
+{
+	printStringXY("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *", 0xD, 0, 0);
+	printStringXY("* ______  _                     _   _                 _____        _  *", 0xD, 0, 1);
+	printStringXY("* | ___ \\(_)                   | \\ | |               |  _  |      (_) *", 0xD, 0, 2);
+	printStringXY("* | |_/ / _  _ __ ___    ___   |  \\| |  ___   _ __   | | | | _ __  _  *", 0xD, 0, 3);
+	printStringXY("* | ___ \\| || '_ ` _ \\  / _ \\  | . ` | / _ \\ | '_ \\  | | | || '__|| | *", 0xD, 0, 4);
+	printStringXY("* | |_/ /| || | | | | || (_) | | |\\  || (_) || | | | \\ \\_/ /| |   | | *", 0xD, 0, 5);
+	printStringXY("* \\____/ |_||_| |_| |_| \\___/  \\_| \\_/ \\___/ |_| |_|  \\___/ |_|   |_| *", 0xD, 0, 6);
+	printStringXY("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *", 0xD, 0, 7);
+}
 
 void deleteDirectory(char *path, int *success, char parentIndex)
 {
 	char dirs[SECTOR_SIZE], file[SECTOR_SIZE], map[SECTOR_SIZE], sector[SECTOR_SIZE];
-	int idxFolder, iterFile, iterSector;
+	char copied[15];
+	int idxFolder, iterFile, iterSector, iterDirs, j;
 	char succ;
+	// printString("Menghapus : ", FALSE);
+	// printString(path, TRUE);
 	readAllSector(dirs, file, map, sector);
 	searchDir(dirs, path, &idxFolder, &succ, parentIndex);
 	if (succ)
 	{
-		dirs[idxFolder * MAX_DIRSNAME] = '\0';
-		//Hapus semua file yang ada di folder ini
-		for (iterFile = 0; iterFile < SECTOR_SIZE; iterFile += (MAX_FILENAME + 1))
+		//Hapus semua dirs yang ada di folder ini secara rekursif
+		// printString("Hapus semua folder di folder ", FALSE);
+		// printString(path, TRUE);
+		for(iterDirs = 0; iterDirs < SECTOR_SIZE; iterDirs += (MAX_DIRSNAME+1))
 		{
-			if (file[iterFile] == idxFolder)
+			if(dirs[iterDirs] == idxFolder && iterDirs != idxFolder && dirs[iterDirs+1] != '\0')
 			{
-				file[iterFile * MAX_FILENAME] = '\0';
-				for (iterSector = 0; (iterSector < MAX_SECTORS) && (sector[iterFile * MAX_SECTORS + iterSector] != 0x00); iterSector++)
+				//HAPUS
+				//copy dulu namanya, buat bikin path
+				clear(copied, 15);
+				for (j = 0; j < 15; j++)
 				{
-					map[sector[iterFile * MAX_SECTORS + iterSector]] = 0x00;
-					sector[iterFile * MAX_SECTORS + iterSector] = 0x00;
+					copied[j] = dirs[iterDirs + j + 1];
 				}
+				deleteDirectory(copied, success, idxFolder);
+				// if(!(*success == 0))
+				// {
+				// 	printString("WTF", TRUE);
+				// }
+				readAllSector(dirs, file, map, sector);
 			}
 		}
+		//////////////////////////////////////////////////////////
+		//Hapus semua file yang ada di folder ini
+		// printString("Hapus semua file di folder ", FALSE);
+		// printString(path, TRUE);
+		for (iterFile = 0; iterFile < SECTOR_SIZE; iterFile += (MAX_FILENAME + 1))
+		{
+			//printInt(iterFile, TRUE);
+			if (file[iterFile] == idxFolder && file[iterFile+1] != 0x00)
+			{
+				// printString("Ada file disini, idxnya : ", FALSE);
+				// printInt(div(iterFile,16), TRUE);
+				file[iterFile] = 0x00;
+				file[iterFile+1] = 0x00;
+				for (iterSector = 0; (iterSector < MAX_SECTORS) && (sector[iterFile*MAX_SECTORS + iterSector] != 0x00); iterSector++)
+				{
+					map[sector[iterFile*MAX_SECTORS + iterSector]] = 0x00;
+					sector[iterFile*MAX_SECTORS + iterSector] = 0x00;
+				}
+
+			}
+		}
+		// printString("mengosongkan idx : ", FALSE);
+		// printInt(idxFolder, TRUE);
+		dirs[(idxFolder*16)] = 0x00;
+		dirs[(idxFolder*16)+1] = 0x00;
 		writeAllSector(dirs, file, map, sector);
 		*success = 0; //Sucess
 	}
