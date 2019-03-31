@@ -88,7 +88,7 @@ int main()
     char inputSeparator[1];
     char input[100], temp[100], fileName[15];
     int inputLen, splitLen;
-    int type, i, copyStart, copyEnd;
+    int type, copyStart, copyEnd;
     char argc, succ, ada;
     char argv[64][128];
     char dirs[SECTOR_SIZE];
@@ -108,11 +108,7 @@ int main()
         //Get curdir
         interrupt(0x21, 0x21, &curDir, 0, 0);
         pS("curDir : ", FALSE);
-        if (curDir == 0x00)
-        {
-            pS("di 0", TRUE);
-        }
-        else if (curDir == 0xFF)
+        if (curDir == 0xFF)
         {
             pS("di Root", TRUE);
         }
@@ -158,6 +154,7 @@ int main()
                         pS("Go up 1 level", TRUE);
                         interrupt(0x21, (0 << 8) | 0x02, dirs, DIRS_SECTOR, 0);
                         curDir = dirs[curDir * 16]; //parent dari curDir
+                        interrupt(0x21, 0x20, curDir, 0, 0);
                     }
                 }
                 else
@@ -172,7 +169,12 @@ int main()
                     searchDir(dirs, argv[1], &idx, &success, curDir);
                     if (success)
                     {
+                        pS("Masuk ke tujuan bosque", TRUE);
                         curDir = idx;
+                        interrupt(0x21, 0x20, curDir, 0, 0);
+                    }else{
+                        pS(argv[1], FALSE);
+                        pS(" not found", TRUE);
                     }
                     //hmmm, seems legit
                     //11/10
@@ -192,10 +194,43 @@ int main()
             }
             else
             {
-                interrupt(0x21, 0x20, curDir, argc, argv + 1);
-                // pS("argv : ", FALSE);
-                // pS(argv[0],TRUE);
-                interrupt(0x21, curDir << 8 | 0x6, "ls", 0x2000, &succ);
+                interrupt(0x21, (0 << 8) | 0x02, dirs, DIRS_SECTOR, 0);
+                interrupt(0x21, (0 << 8) | 0x02, file, FILES_SECTOR, 0);
+                pS("Isi : ", TRUE);
+                clear(fileName, 15);
+                pS("Folder : ", TRUE);
+                for (i = 0; i < SECTOR_SIZE; i+= 16)
+                {
+                    if (dirs[i] == curDir && dirs[i+1] != '\0')
+                    {
+                        clear(fileName, 15);
+                        for (j = 0; j < 15; j++)
+                        {
+                            fileName[j] = dirs[i + j + 1];
+                        }
+                        pS("   ", FALSE);
+                        pS(fileName, TRUE);
+                    }
+                }
+                pS("File : ", TRUE);
+                for (i = 0; i < SECTOR_SIZE; i+= 16)
+                {
+
+                    if (file[i] == curDir && file[i+1] != '\0')
+                    {
+                        clear(fileName, 15);
+                        for (j = 0; j < 15; j++)
+                        {
+                            fileName[j] = file[i + j + 1];
+                        }
+                        pS("   ", FALSE);
+                        pS(fileName, TRUE);
+                    }
+                }
+                // interrupt(0x21, 0x20, curDir, argc, argv + 1);
+                // // pS("argv : ", FALSE);
+                // // pS(argv[0],TRUE);
+                // interrupt(0x21, curDir << 8 | 0x6, "ls", 0x2000, &succ);
             }
         }
         else if (type == mkdir)
@@ -243,7 +278,7 @@ int main()
         else if (type == cat)
         {
             pS("Command cat", TRUE);
-            if (argc != 1 || argc != 2)
+            if (argc != 1 && argc != 2)
             {
                 pS("cat menerima 1 / 2 parameter", TRUE);
             }
@@ -267,19 +302,7 @@ int main()
             }
             interrupt(0x21, 0x02, file, FILES_SECTOR, 0);
             //Cek dulu apakah filenya ada
-            ada = FALSE;
-            for (i = 0; (i < SECTOR_SIZE) && !ada; i++)
-            {
-                if (file[i] == curDir)
-                {
-                    clear(fileName, 15);
-                    for (j = 0; j < 15; j++)
-                    {
-                        fileName[j] = file[i + j + 1];
-                    }
-                    ada = isSame(argv[0] + konstantaRun, fileName);
-                }
-            }
+            search(file, curDir, argv[0]+konstantaRun,&i, &ada);
             if (ada)
             {
                 //argv[0] = nama file yang mau di run (mulai dari index ke 2)

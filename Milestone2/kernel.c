@@ -34,7 +34,7 @@ void readFile(char *buffer, char *path, int *result, char parentIndex);
 void clear(char *buffer, int length);
 void writeFile(char *buffer, char *path, int *sectors, char parentIndex);
 void executeProgram(char *path, int segment, int *result, char parentIndex);
-void printLogo();
+// void printLogo();
 void printStringXY(char *string, int color, int x, int y);
 void printInt(int i, int newLine);
 void printChar(char c, int newLine);
@@ -60,24 +60,48 @@ void replace(char *s, char cari, char tukar);
 
 int main()
 {
-	//char buffer[SECTOR_SIZE * MAX_SECTORS];
+	char buffer[SECTOR_SIZE];
 	char suc;
+	int i;
 	char pathSplitted[MAX_DIRS][MAX_DIRSNAME];
+	char temp[30], temp2[30];
 	makeInterrupt21();
-	printLogo();
-	makeDirectory("bgst",&suc, 0xFF);
-	makeDirectory("test",&suc, 0xFF);
-	makeDirectory("cok", &suc, 0xFF);
-	makeDirectory("test/a", &suc, 0xFF);
-	makeDirectory("cok/basd", &suc, 0xFF);
-	makeDirectory("cok/basd/asdd", &suc, 0xFF);
-	makeDirectory("test/a", &suc, 0xFF);
-	deleteDirectory("test", &suc, 0xFF);
-	makeDirectory("kl",&suc, 0xFF);
-	makeDirectory("abcdefghijklmn",&suc, 0xFF);
-	deleteDirectory("test", &suc, 0xFF);
-	deleteDirectory("kl", &suc, 0xFF);
-	//interrupt(0x21, 0xFF << 8 | 0x0, "SELESAI BOIS", 1 ,0);
+	// printLogo();
+	// makeDirectory("bgst",&suc, 0xFF);
+	// makeDirectory("test",&suc, 0xFF);
+	// makeDirectory("cok", &suc, 0xFF);
+	// makeDirectory("test/a", &suc, 0xFF);
+	// makeDirectory("cok/basd", &suc, 0xFF);
+	// makeDirectory("cok/basd/asdd", &suc, 0xFF);
+	// makeDirectory("test/a", &suc, 0xFF);
+	// deleteDirectory("test", &suc, 0xFF);
+	// makeDirectory("kl",&suc, 0xFF);
+	// makeDirectory("abcdefghijklmn",&suc, 0xFF);
+	// deleteDirectory("test", &suc, 0xFF);
+	// deleteDirectory("kl", &suc, 0xFF);
+	// copy("BANGSAT COK\0\0\0\0", temp, 0, 11);
+	// copy("f1\0\0\0",temp2,0,2);
+	// writeFile(temp, temp2, &i, 0xFF);
+	// if(i != 1)
+	// {
+	// 	printString("o sheit", TRUE);
+	// }
+	// copy("YO MAMEN\0\0\0\0", temp, 0, 8);
+	// copy("bgst/f2\0\0\0",temp2,0,7);
+	// writeFile(temp, temp2, &i, 0xFF);
+	// if(i != 1)
+	// {
+	// 	printString("o cojk", TRUE);
+	// }
+	// temp2[0] = 'f'; temp2[1] = '1'; temp2[2] = '\0';
+	// readFile(buffer, temp2, &i, 0xFF);
+	// if(i != 0)
+	// {
+	// 	printString("shit happened", TRUE);
+	// }else{
+	// 	printString(buffer, TRUE);
+	// }
+	// interrupt(0x21, 0xFF << 8 | 0x0, "SELESAI BOIS", 1 ,0);
 	putArgs(0xFF, 0, 0);
 	interrupt(0x21, 0xFF << 8 | 0x6, "shell", 0x2000, &suc);
 	while (1)
@@ -490,11 +514,16 @@ void searchFile(char *dirs, char *file, char *relPath, char *index, char *succes
 	char fileName[MAX_FILENAME];
 	char idxDir;
 	splitDirFilePath(relPath, relPathWithoutFile, fileName);
+	// printString("rPWF : ", FALSE);
+	// printString(relPathWithoutFile, TRUE);
+	// printString("fN : ", FALSE);
+	// printString(fileName, TRUE);
 	searchDir(dirs, relPathWithoutFile, &idxDir, success, parentIndex);
 	if (*success)
 	{
 		search(file, idxDir, fileName, index, success);
 	}
+	// printString("COK", TRUE);
 }
 
 void readAllSector(char *dirs, char *file, char *map, char *sector)
@@ -532,8 +561,8 @@ void readFile(char *buffer, char *path, int *result, char parentIndex)
 		{
 			if (sector[idxFile * 16 + iterSector] != 0x00)
 			{
-				interrupt(0x21, 0x02, buffer + iterSector * SECTOR_SIZE, sector[idxFile * 16 + iterSector], 0);
-				//readSector(buffer + iterSector * SECTOR_SIZE, sector[idxFile * 16 + iterSector]);
+				//interrupt(0x21, 0x02, buffer + iterSector * SECTOR_SIZE, sector[idxFile * 16 + iterSector], 0);
+				readSector(buffer + iterSector * SECTOR_SIZE, sector[idxFile * 16 + iterSector]);
 			}
 			else
 			{
@@ -569,10 +598,11 @@ void writeFile(char *buffer, char *path, int *sectors, char parentIndex)
 	char succ;
 	char parentFile;
 	int divBuffSec;
-	interrupt(0x21, 0x02, dirs, DIRS_SECTOR, 0);
-	interrupt(0x21, 0x02, file, FILES_SECTOR, 0);
-	interrupt(0x21, 0x02, map, MAP_SECTOR, 0);
-	interrupt(0x21, 0x02, sector, SECTORS_SECTOR, 0);
+	readAllSector(dirs, file, map, sector);
+	// interrupt(0x21, 0x02, dirs, DIRS_SECTOR, 0);
+	// interrupt(0x21, 0x02, file, FILES_SECTOR, 0);
+	// interrupt(0x21, 0x02, map, MAP_SECTOR, 0);
+	// interrupt(0x21, 0x02, sector, SECTORS_SECTOR, 0);
 	//Cek jumlah sektor kosong di map
 	cntMapKosong = 0;
 	for (i = 0; i < SECTOR_SIZE; i++)
@@ -594,15 +624,19 @@ void writeFile(char *buffer, char *path, int *sectors, char parentIndex)
 		succ = FALSE;
 		for (i = 0; (i < SECTOR_SIZE) && !succ; i += (MAX_FILENAME + 1))
 		{
-			if (file[i] == '\0')
+			if (file[i + 1] == '\0')
 			{
 				succ = TRUE;
-				idxFile = i;
+				idxFile = div(i, 16);
 			}
 		}
 		if (succ)
 		{
 			splitDirFilePath(path, dirPath, fileName);
+			// printString("dirPath : ", FALSE);
+			// printString(dirPath, TRUE);
+			// printString("fileName : ", FALSE);
+			// printString(fileName, TRUE);
 			//Cek apakah dir ada / tidak
 			searchDir(dirs, dirPath, &parentFile, &succ, parentIndex);
 			if (succ)
@@ -615,10 +649,12 @@ void writeFile(char *buffer, char *path, int *sectors, char parentIndex)
 				}
 				else
 				{
+					//printString("Tulis parent file", TRUE);
 					file[idxFile * (MAX_FILENAME + 1)] = parentFile;
-					len(fileName, lenFileName);
+					len(fileName, &lenFileName);
 					for (i = 0; i < lenFileName; i++)
 					{
+						//printChar(fileName[i], FALSE);
 						file[idxFile * (MAX_FILENAME + 1) + i + 1] = fileName[i];
 					}
 					for (i = 0; i < divBuffSec; i++)
@@ -630,14 +666,16 @@ void writeFile(char *buffer, char *path, int *sectors, char parentIndex)
 						}
 						map[iterMap] = 0xFF;
 						sector[idxFile * (MAX_FILENAME + 1) + i] = iterMap;
+						//clear(buffer+lenBuffer, 512-lenBuffer);
 						copy(buffer, sectorBuffer, i * SECTOR_SIZE, SECTOR_SIZE);
-						interrupt(0x21, 0x03, sectorBuffer, iterMap, 0);
-						//writeSector(sectorBuffer, iterMap);
+						//interrupt(0x21, 0x03, sectorBuffer, iterMap, 0);
+						writeSector(sectorBuffer, iterMap);
 					}
 					interrupt(0x21, 0x03, dirs, DIRS_SECTOR, 0);
 					interrupt(0x21, 0x03, file, FILES_SECTOR, 0);
 					interrupt(0x21, 0x03, map, MAP_SECTOR, 0);
 					interrupt(0x21, 0x03, sector, SECTORS_SECTOR, 0);
+					*sectors = 1;
 				}
 			}
 			else
@@ -777,17 +815,17 @@ void deleteFile(char *path, int *result, char parentIndex)
 	}
 }
 
-void printLogo()
-{
-	printStringXY("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *", 0xD, 0, 0);
-	printStringXY("* ______  _                     _   _                 _____        _  *", 0xD, 0, 1);
-	printStringXY("* | ___ \\(_)                   | \\ | |               |  _  |      (_) *", 0xD, 0, 2);
-	printStringXY("* | |_/ / _  _ __ ___    ___   |  \\| |  ___   _ __   | | | | _ __  _  *", 0xD, 0, 3);
-	printStringXY("* | ___ \\| || '_ ` _ \\  / _ \\  | . ` | / _ \\ | '_ \\  | | | || '__|| | *", 0xD, 0, 4);
-	printStringXY("* | |_/ /| || | | | | || (_) | | |\\  || (_) || | | | \\ \\_/ /| |   | | *", 0xD, 0, 5);
-	printStringXY("* \\____/ |_||_| |_| |_| \\___/  \\_| \\_/ \\___/ |_| |_|  \\___/ |_|   |_| *", 0xD, 0, 6);
-	printStringXY("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *", 0xD, 0, 7);
-}
+// void printLogo()
+// {
+// 	printStringXY("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *", 0xD, 0, 0);
+// 	printStringXY("* ______  _                     _   _                 _____        _  *", 0xD, 0, 1);
+// 	printStringXY("* | ___ \\(_)                   | \\ | |               |  _  |      (_) *", 0xD, 0, 2);
+// 	printStringXY("* | |_/ / _  _ __ ___    ___   |  \\| |  ___   _ __   | | | | _ __  _  *", 0xD, 0, 3);
+// 	printStringXY("* | ___ \\| || '_ ` _ \\  / _ \\  | . ` | / _ \\ | '_ \\  | | | || '__|| | *", 0xD, 0, 4);
+// 	printStringXY("* | |_/ /| || | | | | || (_) | | |\\  || (_) || | | | \\ \\_/ /| |   | | *", 0xD, 0, 5);
+// 	printStringXY("* \\____/ |_||_| |_| |_| \\___/  \\_| \\_/ \\___/ |_| |_|  \\___/ |_|   |_| *", 0xD, 0, 6);
+// 	printStringXY("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *", 0xD, 0, 7);
+// }
 
 void deleteDirectory(char *path, int *success, char parentIndex)
 {

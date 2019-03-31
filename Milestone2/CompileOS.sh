@@ -18,8 +18,6 @@ echo Selesai kompilasi kernel
 echo Copy kernel ke floppya img
 dd if=kernel of=floppya.img bs=512 conv=notrunc seek=1
 echo Selesai kompilasi os
-echo Kompilasi load file
-gcc loadFile.c -o loadFile
 echo load shell
 as86 lib.asm -o lib_asm.o
 bcc -ansi -c -o shell.o shell.c
@@ -32,8 +30,10 @@ ld86 -o echoUtil -d echoUtil.o lib_asm.o
 bcc -ansi -c -o mkdir.o mkdir.c
 ld86 -o mkdir -d mkdir.o lib_asm.o
 ./loadFile mkdir
-bcc -ansi -c -o ls.o ls.c
-ld86 -o ls -d ls.o lib_asm.o
-./loadFile ls
+bcc -ansi -c -o cat.o cat.c
+ld86 -o cat -d cat.o lib_asm.o
+./loadFile cat
+echo load keyproc
+./loadFile keyproc2
 echo Load bochs
 bochs -f opsys.bxrc

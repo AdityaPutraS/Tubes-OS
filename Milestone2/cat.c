@@ -16,23 +16,26 @@ int main()
     char argc;
     char argv[2][128];
     char isiFile[MAX_SECTORS * SECTOR_SIZE];
+    char buffer[SECTOR_SIZE];
     char temp;
     int berhasil;
     interrupt(0x21, 0x21, &curdir, 0, 0);
     interrupt(0x21, 0x22, &argc, 0, 0);
     interrupt(0x21, 0x23, 0, argv[0], 0);   // nama folder / path relatif folder
-    clear(isiFile, MAX_SECTORS * SECTOR_SIZE);
     if(argc == 2)
     {
         interrupt(0x21, 0x23, 1, argv[1], 0); //parameter -w
         //Cek apakah -w
-        if(argv[1][0] == '-' && argv[1][0] == 'w' && argv[1][0] == '\0')
+        if(argv[1][0] == '-' && argv[1][1] == 'w' && argv[1][2] == '\0')
         {
             //Write mode
+            clear(isiFile, MAX_SECTORS * SECTOR_SIZE);
             interrupt(0x21, 0x1, isiFile, 0, 0);
             //Tulis input ke file
             interrupt(0x21, curdir << 8 | 0x05, isiFile, argv[0], &berhasil);
-            if(berhasil == 0)
+            if(berhasil == 1){
+                interrupt(0x21, 0x0, "FILE_WRITTEN", 1, 0);
+            }else if(berhasil == 0)
             {
                 interrupt(0x21, 0x0, "INSUFFICIENT_SECTORS", 1, 0);
             }else if(berhasil == -1)
@@ -50,10 +53,11 @@ int main()
         }
     }else{
         //Read mode
-        interrupt(0x21, curdir << 8 | 0x04, isiFile, argv[0], &berhasil);
+        clear(buffer, SECTOR_SIZE);
+        interrupt(0x21, curdir << 8 | 0x04, buffer, argv[0], &berhasil);
         if(berhasil == 0)
         {
-            interrupt(0x21, 0x0, isiFile, 1, 0);
+            interrupt(0x21, 0x0, buffer, 1, 0);
         }else if(berhasil == -1){
             interrupt(0x21, 0x0, "FILE NOT FOUND", 1, 0);
         }else{
