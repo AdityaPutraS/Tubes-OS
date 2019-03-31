@@ -58,8 +58,7 @@ void readAllSector(char *dirs, char *file, char *map, char *sector);
 void writeAllSector(char *dirs, char *file, char *map, char *sector);
 void replace(char *s, char cari, char tukar);
 
-int main()
-{
+int main() {
 	char buffer[SECTOR_SIZE];
 	char suc;
 	int i;
@@ -67,70 +66,33 @@ int main()
 	char temp[30], temp2[30];
 	makeInterrupt21();
 	// printLogo();
-	// makeDirectory("bgst",&suc, 0xFF);
-	// makeDirectory("test",&suc, 0xFF);
-	// makeDirectory("cok", &suc, 0xFF);
-	// makeDirectory("test/a", &suc, 0xFF);
-	// makeDirectory("cok/basd", &suc, 0xFF);
-	// makeDirectory("cok/basd/asdd", &suc, 0xFF);
-	// makeDirectory("test/a", &suc, 0xFF);
-	// deleteDirectory("test", &suc, 0xFF);
-	// makeDirectory("kl",&suc, 0xFF);
-	// makeDirectory("abcdefghijklmn",&suc, 0xFF);
-	// deleteDirectory("test", &suc, 0xFF);
-	// deleteDirectory("kl", &suc, 0xFF);
-	// copy("BANGSAT COK\0\0\0\0", temp, 0, 11);
-	// copy("f1\0\0\0",temp2,0,2);
-	// writeFile(temp, temp2, &i, 0xFF);
-	// if(i != 1)
-	// {
-	// 	printString("o sheit", TRUE);
-	// }
-	// copy("YO MAMEN\0\0\0\0", temp, 0, 8);
-	// copy("bgst/f2\0\0\0",temp2,0,7);
-	// writeFile(temp, temp2, &i, 0xFF);
-	// if(i != 1)
-	// {
-	// 	printString("o cojk", TRUE);
-	// }
-	// temp2[0] = 'f'; temp2[1] = '1'; temp2[2] = '\0';
-	// readFile(buffer, temp2, &i, 0xFF);
-	// if(i != 0)
-	// {
-	// 	printString("shit happened", TRUE);
-	// }else{
-	// 	printString(buffer, TRUE);
-	// }
-	// interrupt(0x21, 0xFF << 8 | 0x0, "SELESAI BOIS", 1 ,0);
 	putArgs(0xFF, 0, 0);
 	interrupt(0x21, 0xFF << 8 | 0x6, "shell", 0x2000, &suc);
-	while (1)
-	{
-	
+	while (1) {
 	}
 }
 
-void replace(char *s, char cari, char tukar)
-{
+/**
+ * Mengganti setiap karakter cari pada string s dengan tukar
+ */
+void replace(char *s, char cari, char tukar) {
 	int length, i;
 	len(s, &length);
-	for (i = 0; i < length; i++)
-	{
-		if (s[i] == cari)
-		{
+	for (i = 0; i < length; i++) {
+		if (s[i] == cari) {
 			s[i] = tukar;
 		}
 	}
 	s[length] = '\0';
 }
 
-void printStringXY(char *string, int color, int x, int y)
-{
-	if (x >= 0 && x <= 80 && y >= 0 && y <= 25)
-	{
+/**
+ * Menampilkan kalimat string dengan warna color pada lokasi (x, y)
+ */
+void printStringXY(char *string, int color, int x, int y) {
+	if (x >= 0 && x <= 80 && y >= 0 && y <= 25) {
 		int i = 0;
-		while (string[i] != '\0' && string[i] != '\n')
-		{
+		while (string[i] != '\0' && string[i] != '\n') {
 			int offset = 0x8000 + ((80 * y) + x) * 2;
 			putInMemory(0xB000, offset, string[i]);
 			putInMemory(0xB000, offset + 1, color);
@@ -140,98 +102,106 @@ void printStringXY(char *string, int color, int x, int y)
 	}
 }
 
-void handleInterrupt21(int AX, int BX, int CX, int DX)
-{
+/**
+ * Implementasi interupt nomor 0x21 pada kernel
+ * Fungsi menerima 5 argumen AL, AH, BX, CX, dan DX
+ * dengan AX = (AH << 8) | AL
+ * interupt 0x21 dapat dipanggil dengan code:
+ * interrupt(0x21, (AH << 8) | AL, BX, CX, DX);
+ */
+void handleInterrupt21(int AX, int BX, int CX, int DX) {
 	char AL, AH;
 	AL = (char)(AX);
 	AH = (char)(AX >> 8);
 
-	switch (AL)
-	{
-	case 0x00:
-		printString(BX, CX);
-		break;
-	case 0x01:
-		readString(BX);
-		break;
-	case 0x02:
-		readSector(BX, CX);
-		break;
-	case 0x03:
-		writeSector(BX, CX);
-		break;
-	case 0x04:
-		readFile(BX, CX, DX, AH);
-		break;
-	case 0x05:
-		writeFile(BX, CX, DX, AH);
-		break;
-	case 0x06:
-		executeProgram(BX, CX, DX, AH);
-		break;
-	case 0x07:
-		terminateProgram(BX);
-		break;
-	case 0x08:
-		makeDirectory(BX, CX, AH);
-		break;
-	case 0x09:
-		deleteFile(BX, CX, AH);
-		break;
-	case 0x0A:
-		deleteDirectory(BX, CX, AH);
-		break;
-	case 0x20:
-		putArgs(BX, CX, DX);
-		break;
-	case 0x21:
-		getCurdir(BX);
-		break;
-	case 0x22:
-		getArgc(BX);
-		break;
-	case 0x23:
-		getArgv(BX, CX);
-		break;
-	case 0x24:
-		printInt(BX, CX);
-		break;
-	case 0x25:
-		printChar(BX, CX);
-		break;
-	default:
-		printString("Invalid interrupt", TRUE);
+	switch (AL) {
+		case 0x00:
+			printString(BX, CX);
+			break;
+		case 0x01:
+			readString(BX);
+			break;
+		case 0x02:
+			readSector(BX, CX);
+			break;
+		case 0x03:
+			writeSector(BX, CX);
+			break;
+		case 0x04:
+			readFile(BX, CX, DX, AH);
+			break;
+		case 0x05:
+			writeFile(BX, CX, DX, AH);
+			break;
+		case 0x06:
+			executeProgram(BX, CX, DX, AH);
+			break;
+		case 0x07:
+			terminateProgram(BX);
+			break;
+		case 0x08:
+			makeDirectory(BX, CX, AH);
+			break;
+		case 0x09:
+			deleteFile(BX, CX, AH);
+			break;
+		case 0x0A:
+			deleteDirectory(BX, CX, AH);
+			break;
+		case 0x20:
+			putArgs(BX, CX, DX);
+			break;
+		case 0x21:
+			getCurdir(BX);
+			break;
+		case 0x22:
+			getArgc(BX);
+			break;
+		case 0x23:
+			getArgv(BX, CX);
+			break;
+		case 0x24:
+			printInt(BX, CX);
+			break;
+		case 0x25:
+			printChar(BX, CX);
+			break;
+		default:
+			printString("Invalid interrupt", TRUE);
 	}
 }
 
-void printString(char *string, int newLine)
-{
+/**
+ * Mencetak string ke layar, jika newLine == TRUE maka akan mencetak \n
+ */
+void printString(char *string, int newLine) {
 	int i = 0;
-	while (string[i] != '\0')
-	{
+	while (string[i] != '\0') {
 		interrupt(0x10, 0xE00 + string[i], 0, 0, 0);
 		i = i + 1;
 	}
-	if (newLine)
-	{
+	if (newLine) {
 		interrupt(0x10, 0xE00 + '\n', 0, 0, 0);
 		interrupt(0x10, 0xE00 + '\r', 0, 0, 0);
 	}
 }
 
-//////FOR DEBUGGING PURPOSE
-void printChar(char c, int newLine)
-{
+//////FOR DEBUGGING PURPOSEs
+/**
+ * Mencetak char ke layar, jika newLine == TRUE maka akan mencetak \n
+ */
+void printChar(char c, int newLine) {
 	interrupt(0x10, 0xE00 + c, 0, 0, 0);
-	if (newLine)
-	{
+	if (newLine) {
 		interrupt(0x10, 0xE00 + '\n', 0, 0, 0);
 		interrupt(0x10, 0xE00 + '\r', 0, 0, 0);
 	}
 }
 
-void printInt(int i, int newLine)
-{
+/**
+ * Mencetak integer 9 digit ke layar, jika newLine == TRUE maka akan mencetak \n
+ */
+void printInt(int i, int newLine) {
 	int j;
 	char digit[10]; //9 digit max
 	digit[0] = '0';
@@ -245,8 +215,7 @@ void printInt(int i, int newLine)
 	digit[8] = '0';
 	digit[9] = '\0';
 	j = 8;
-	while (i != 0 && j >= 0)
-	{
+	while (i != 0 && j >= 0) {
 		digit[j] = '0' + mod(i, 10);
 		i = div(i, 10);
 		j -= 1;
@@ -255,32 +224,26 @@ void printInt(int i, int newLine)
 }
 //////////////////////////
 
-void readString(char *string)
-{
+/**
+ * Mencetak string dari user, akan berhenti membaca ketika enter ditekan
+ */
+void readString(char *string) {
 	int i = 0;
 	char c = 0;
-	while (c != '\r')
-	{
+	while (c != '\r') {
 		c = interrupt(0x16, 0, 0, 0, 0);
-		if (c == '\r')
-		{
+		if (c == '\r') {
 			string[i] = '\0';
-		}
-		else
-		{
-			if (c == '\b')
-			{
-				if (i > 0)
-				{
+		} else {
+			if (c == '\b') {
+				if (i > 0) {
 					interrupt(0x10, 0xE00 + '\b', 0, 0, 0);
 					interrupt(0x10, 0xE00 + '\0', 0, 0, 0);
 					interrupt(0x10, 0xE00 + '\b', 0, 0, 0);
 					string[i] = '\0';
 					i = i - 1;
 				}
-			}
-			else
-			{
+			} else {
 				string[i] = c;
 				i = i + 1;
 				interrupt(0x10, 0xE00 + c, 0, 0, 0);
@@ -291,52 +254,64 @@ void readString(char *string)
 	interrupt(0x10, 0xE00 + '\r', 0, 0, 0);
 }
 
-int mod(int a, int b)
-{
-	while (a >= b)
-	{
+/**
+ * Mencari sisa bagi dari 2 bilangan
+ */
+int mod(int a, int b) {
+	while (a >= b) {
 		a = a - b;
 	}
 	return a;
 }
 
-int div(int a, int b)
-{
+/**
+ * Mencari hasil bagi 2 bilangan, rounded down
+ */
+int div(int a, int b) {
 	int q = 0;
-	while (q * b <= a)
-	{
+	while (q * b <= a) {
 		q = q + 1;
 	}
 	return q - 1;
 }
 
-void readSector(char *buffer, int sector)
-{
-	interrupt(0x13, 0x201, buffer, div(sector, 36) * 0x100 + mod(sector, 18) + 1, mod(div(sector, 18), 2) * 0x100);
-}
-void writeSector(char *buffer, int sector)
-{
-	interrupt(0x13, 0x301, buffer, div(sector, 36) * 0x100 + mod(sector, 18) + 1, mod(div(sector, 18), 2) * 0x100);
+/**
+ * Membaca sektor ke (int) sector lalu memasukkan isinya kedalam (char*) buffer,
+ * implementasi memanfaatkan interrupt nomor 0x13
+ */
+void readSector(char *buffer, int sector) {
+	interrupt(0x13, 0x201, buffer, 
+	div(sector, 36) * 0x100 + mod(sector, 18) + 1, 
+	mod(div(sector, 18), 2) * 0x100);
 }
 
-void split(char *string, char separator, char splitted[32][15])
-{
+/**
+ * Menuliskan isi dari (char*) buffer kedalam sektor nomor (int) sector,
+ * implementasi memanfaatkan interrupt nomor 0x13
+ */
+void writeSector(char *buffer, int sector) {
+	interrupt(0x13, 0x301, buffer, 
+	div(sector, 36) * 0x100 + mod(sector, 18) + 1, 
+	mod(div(sector, 18), 2) * 0x100);
+}
+
+/**
+ * Memisahkan suatu string menjadi sekumpulan string yang pada awalnya
+ * dipisahkan oleh karakter separator
+ */
+void split(char *string, char separator, char splitted[32][15]) {
 	int i, j, k;
 	i = 0;
 	j = 0;
 	k = 0;
-    clear(splitted[0], 15);
-	while (string[i] != '\0')
-	{
-		if (string[i] == separator)
-		{
+	clear(splitted[0], 15);
+	while (string[i] != '\0') {
+		if (string[i] == separator) {
 			splitted[j][k] = '\0';
 			j += 1;
 			k = 0;
-            clear(splitted[j], 15);
-		}
-		else
-		{
+			clear(splitted[j], 15);
+		} else {
 			splitted[j][k] = string[i];
 			k += 1;
 		}
@@ -345,72 +320,60 @@ void split(char *string, char separator, char splitted[32][15])
 	splitted[j][k] = '\0';
 }
 
-void len(char *string, int *length)
-{
+/** Menghitung panjang dari sebuah string */
+void len(char *string, int *length) {
 	*length = 0;
-	while (string[*length] != '\0')
-	{
+	while (string[*length] != '\0') {
 		*length += 1;
 	}
 }
 
-void count(char *string, char c, int *banyak)
-{
+/** Menghitung banyaknya kemunculan karakter c pada sebuah string */
+void count(char *string, char c, int *banyak) {
 	int i = 0;
 	*banyak = 0;
-	while (string[i] != '\0')
-	{
-		if (string[i] == c)
-		{
+	while (string[i] != '\0') {
+		if (string[i] == c) {
 			*banyak += 1;
 		}
 		i += 1;
 	}
 }
 
-void isSame(char *s1, char *s2, char *result)
-{
+/** Menentukan apakah dua buah string sama atau tidak */
+void isSame(char *s1, char *s2, char *result) {
 	int i;
 	char tempResult;
 	i = 0;
 	tempResult = TRUE;
-	while (s1[i] != '\0' && s2[i] != '\0' && tempResult)
-	{
-		if (s1[i] != s2[i])
-		{
+	while (s1[i] != '\0' && s2[i] != '\0' && tempResult) {
+		if (s1[i] != s2[i]) {
 			tempResult = FALSE;
 		}
 		i += 1;
 	}
-	if (s1[i] != '\0' || s2[i] != '\0')
-	{
+	if (s1[i] != '\0' || s2[i] != '\0') {
 		tempResult = FALSE;
 	}
 	*result = tempResult;
 }
 
-void copy(char *string, char *copied, int start, int length)
-{
+/** Menyalin isi dari sebuah (string) ke (string) copied */
+void copy(char *string, char *copied, int start, int length) {
 	int lenS, lenC, i;
 	len(string, &lenS);
 	len(copied, &lenC);
 	clear(copied, lenC);
-	if (lenS < length)
-	{
+	if (lenS < length) {
 		clear(copied, lenS);
-	}
-	else
-	{
+	} else {
 		clear(copied, length);
 	}
 	//Validasi start
-	if (start < lenS)
-	{
-		if (length > 0)
-		{
+	if (start < lenS) {
+		if (length > 0) {
 			i = start;
-			while (length > 0 && string[i] != '\0')
-			{
+			while (length > 0 && string[i] != '\0') {
 				copied[i - start] = string[i];
 				i += 1;
 				length -= 1;
@@ -419,8 +382,11 @@ void copy(char *string, char *copied, int start, int length)
 	}
 }
 
-void search(char *sector, char awal, char sisanya[15], char *index, char *success)
-{
+/** 
+ * Mencari keberadaan sebuah(string) pada suatu sector
+ * Biasanya digunakan untuk searching pada sector, dirs (0x101) dan files (0x102)
+ */
+void search(char *sector, char awal, char sisanya[15], char *index, char *success) {
 	int i, j;
 	char copied[15];
 	clear(copied, 15);
@@ -428,14 +394,12 @@ void search(char *sector, char awal, char sisanya[15], char *index, char *succes
 	*index = 0;
 	// printString("Masuk search , cari : ", FALSE);
 	// printString(sisanya, TRUE);
-	for(i = 0; (i < 32) && !(*success); i++)
-	{
-		if(sector[i*16] == awal){
-			//Kopi sebagian dr sektor
+	for (i = 0; (i < 32) && !(*success); i++) {
+		if (sector[i * 16] == awal) {
+			//Kopi sebagian dari sektor
 			clear(copied, 15);
-			for(j =0; j < 15; j++)
-			{
-				copied[j] = sector[i*16+j+1];
+			for (j = 0; j < 15; j++) {
+				copied[j] = sector[i * 16 + j + 1];
 			}
 			// printInt(i, TRUE);
 			// printString("V", TRUE);
@@ -444,21 +408,21 @@ void search(char *sector, char awal, char sisanya[15], char *index, char *succes
 		}
 	}
 	// printString("SELESAI", TRUE);
-	*index = i-1;
+	*index = i - 1;
 }
 
-void searchDir(char *dirs, char *relPath, char *index, char *success, char parentIndex)
-{
+/**
+ * Mencari indeks direktori xyz dengan kemungkinan path relatif aaa/bbb/xyz yang terdapat pada
+ * sektor dirs dengan index direktory parent dari aaa adalah parentIndex
+ */
+void searchDir(char *dirs, char *relPath, char *index, char *success, char parentIndex) {
 	int i, pathLength, countSlash;
 	char pathSplitted[MAX_DIRS][MAX_DIRSNAME];
 	char cari[MAX_DIRSNAME];
-	if (relPath[0] == '\0')
-	{
+	if (relPath[0] == '\0') {
 		*success = TRUE;
 		*index = parentIndex;
-	}
-	else
-	{
+	} else {
 		//Split path
 		len(relPath, &pathLength);
 		count(relPath, '/', &countSlash);
@@ -470,36 +434,33 @@ void searchDir(char *dirs, char *relPath, char *index, char *success, char paren
 		// printString("count slash : ", FALSE);
 		// printInt(countSlash, TRUE);
 		*success = TRUE;
-		for (i = 0; (i < (countSlash + 1)) && *success; i++)
-		{
+		for (i = 0; (i < (countSlash + 1)) && *success; i++) {
 			// printString("pathSplitted skrng : ", FALSE);
 			// printString(pathSplitted[i], TRUE);
 			clear(cari, 15);
-			copy(pathSplitted[i], cari,0,15);
+			copy(pathSplitted[i], cari, 0, 15);
 			search(dirs, parentIndex, cari, index, success);
-			if(!success)
-			{
-				// printString("BANGSAT", TRUE);
-			}
+			// if (!success)
+			// {
+				// printString("Direktori tidak ditemukan", TRUE);
+			// }
 			parentIndex = *index;
 		}
 	}
 }
 
-void splitDirFilePath(char *path, char *dirPath, char *fileName)
-{
+/** Memisahkan nama file dengan pathnya */
+void splitDirFilePath(char *path, char *dirPath, char *fileName) {
 	int i, lenCopy;
 	len(path, &i);
 	//abc/def/gg
 	//0123456789
 	//len = 10
-	//shell
-	//01234
-	//len = 5
+	//dirPath = abc/def
+	//fileName = gg
 	i -= 1;
 	lenCopy = 0;
-	while (path[i] != '/' && i >= 0)
-	{
+	while (path[i] != '/' && i >= 0) {
 		lenCopy += 1;
 		i -= 1;
 	}
@@ -508,8 +469,11 @@ void splitDirFilePath(char *path, char *dirPath, char *fileName)
 	copy(path, fileName, i, lenCopy);
 }
 
-void searchFile(char *dirs, char *file, char *relPath, char *index, char *success, char parentIndex)
-{
+/**
+ * Mencari indeks file xyz dengan kemungkinan path relatif aaa/bbb/xyz yang terdapat pada
+ * sektor dirs dengan index direktory parent dari aaa adalah parentIndex
+ */
+void searchFile(char *dirs, char *file, char *relPath, char *index, char *success, char parentIndex) {
 	char relPathWithoutFile[MAX_DIRS * (MAX_DIRSNAME + 1)];
 	char fileName[MAX_FILENAME];
 	char idxDir;
@@ -523,28 +487,26 @@ void searchFile(char *dirs, char *file, char *relPath, char *index, char *succes
 	{
 		search(file, idxDir, fileName, index, success);
 	}
-	// printString("COK", TRUE);
 }
 
-void readAllSector(char *dirs, char *file, char *map, char *sector)
-{
+/** Membaca sektor dirs, file, map, dan sector lalu memasukkannya ke buffer yang sesuai */
+void readAllSector(char *dirs, char *file, char *map, char *sector)  {
 	readSector(dirs, DIRS_SECTOR);
 	readSector(file, FILES_SECTOR);
 	readSector(map, MAP_SECTOR);
 	readSector(sector, SECTORS_SECTOR);
 }
-void writeAllSector(char *dirs, char *file, char *map, char *sector)
-{
-	// printString("TULIS KE SEKTOR", TRUE);
+
+/** Menuliskan isi dari semua buffer yang terdefinisi kedalam sector-sector yang sesuai */
+void writeAllSector(char *dirs, char *file, char *map, char *sector) {
 	writeSector(dirs, DIRS_SECTOR);
 	writeSector(file, FILES_SECTOR);
 	writeSector(map, MAP_SECTOR);
 	writeSector(sector, SECTORS_SECTOR);
-	// printString("SELESAI TULIS KE SEKTOR", TRUE);
 }
 
-void readFile(char *buffer, char *path, int *result, char parentIndex)
-{
+/** Membaca file dengan path tertentu lalu memasukka isinya kealam buffer */
+void readFile(char *buffer, char *path, int *result, char parentIndex) {
 	//Baca sector dirs
 	char dirs[SECTOR_SIZE], file[SECTOR_SIZE], sector[SECTOR_SIZE];
 	int iterSector, idxFile;
@@ -554,40 +516,32 @@ void readFile(char *buffer, char *path, int *result, char parentIndex)
 	interrupt(0x21, 0x02, sector, SECTORS_SECTOR, 0);
 	//Cari index file yang sesuai dengan path
 	searchFile(dirs, file, path, &idxFile, &succ, parentIndex);
-	if (succ)
-	{
+	if (succ) {
 		//Baca daftar sektor file pada entri file
-		for (iterSector = 0; iterSector < 16; iterSector++)
-		{
-			if (sector[idxFile * 16 + iterSector] != 0x00)
-			{
+		for (iterSector = 0; iterSector < 16; iterSector++) {
+			if (sector[idxFile * 16 + iterSector] != 0x00) {
 				//interrupt(0x21, 0x02, buffer + iterSector * SECTOR_SIZE, sector[idxFile * 16 + iterSector], 0);
 				readSector(buffer + iterSector * SECTOR_SIZE, sector[idxFile * 16 + iterSector]);
-			}
-			else
-			{
+			} else {
 				break;
 			}
 		}
 		*result = 0; //Success
-	}
-	else
-	{
+	} else {
 		*result = NOT_FOUND;
 	}
 }
 
-void clear(char *buffer, int length)
-{
+/** Menghapus isi buffer sepanjang length */
+void clear(char *buffer, int length) {
 	int i;
-	for (i = 0; i < length; ++i)
-	{
+	for (i = 0; i < length; ++i) {
 		buffer[i] = EMPTY;
 	}
 }
 
-void writeFile(char *buffer, char *path, int *sectors, char parentIndex)
-{
+/** Mengisi file dengan path tertentu dengan isi dalam buffer */
+void writeFile(char *buffer, char *path, int *sectors, char parentIndex) {
 	char dirs[SECTOR_SIZE], file[SECTOR_SIZE], map[SECTOR_SIZE], sector[SECTOR_SIZE];
 	char dirPath[MAX_DIRS * (MAX_DIRSNAME + 1)];
 	char fileName[MAX_FILENAME];
@@ -599,39 +553,27 @@ void writeFile(char *buffer, char *path, int *sectors, char parentIndex)
 	char parentFile;
 	int divBuffSec;
 	readAllSector(dirs, file, map, sector);
-	// interrupt(0x21, 0x02, dirs, DIRS_SECTOR, 0);
-	// interrupt(0x21, 0x02, file, FILES_SECTOR, 0);
-	// interrupt(0x21, 0x02, map, MAP_SECTOR, 0);
-	// interrupt(0x21, 0x02, sector, SECTORS_SECTOR, 0);
+
 	//Cek jumlah sektor kosong di map
 	cntMapKosong = 0;
-	for (i = 0; i < SECTOR_SIZE; i++)
-	{
-		if (map[i] == 0x00)
-		{
+	for (i = 0; i < SECTOR_SIZE; i++) {
+		if (map[i] == 0x00) {
 			cntMapKosong += 1;
 		}
 	}
 	len(buffer, lenBuffer);
 	divBuffSec = div(lenBuffer, SECTOR_SIZE);
-	if (divBuffSec <= 0)
-	{
+	if (divBuffSec <= 0) {
 		divBuffSec = 1;
-	}
-	if (cntMapKosong >= divBuffSec)
-	{
+	} if (cntMapKosong >= divBuffSec) {
 		//Cek apakah ada entri kosong di files
 		succ = FALSE;
-		for (i = 0; (i < SECTOR_SIZE) && !succ; i += (MAX_FILENAME + 1))
-		{
-			if (file[i + 1] == '\0')
-			{
+		for (i = 0; (i < SECTOR_SIZE) && !succ; i += (MAX_FILENAME + 1)) {
+			if (file[i + 1] == '\0') {
 				succ = TRUE;
 				idxFile = div(i, 16);
 			}
-		}
-		if (succ)
-		{
+		} if (succ) {
 			splitDirFilePath(path, dirPath, fileName);
 			// printString("dirPath : ", FALSE);
 			// printString(dirPath, TRUE);
@@ -639,16 +581,12 @@ void writeFile(char *buffer, char *path, int *sectors, char parentIndex)
 			// printString(fileName, TRUE);
 			//Cek apakah dir ada / tidak
 			searchDir(dirs, dirPath, &parentFile, &succ, parentIndex);
-			if (succ)
-			{
+			if (succ) {
 				//Cek apakah filenya sudah ada / tidak
 				searchFile(dirs, file, path, &i, &succ, parentIndex);
-				if (succ)
-				{
+				if (succ) {
 					*sectors = ALREADY_EXISTS;
-				}
-				else
-				{
+				} else {
 					//printString("Tulis parent file", TRUE);
 					file[idxFile * (MAX_FILENAME + 1)] = parentFile;
 					len(fileName, &lenFileName);
@@ -694,8 +632,8 @@ void writeFile(char *buffer, char *path, int *sectors, char parentIndex)
 	}
 }
 
-void executeProgram(char *path, int segment, int *result, char parentIndex)
-{
+/** Invoke program yang terdapat dalam path tertentu yang dijalankan pada segment tertentu */
+void executeProgram(char *path, int segment, int *result, char parentIndex) {
 	char buffer[MAX_SECTORS * SECTOR_SIZE];
 	int i;
 	readFile(buffer, path, result, parentIndex);
@@ -709,6 +647,7 @@ void executeProgram(char *path, int segment, int *result, char parentIndex)
 	}
 }
 
+/** Mematikan program yang sedang berjalan dan menjalankan shell */
 void terminateProgram(int *result)
 {
 	char shell[6];
@@ -721,6 +660,7 @@ void terminateProgram(int *result)
 	executeProgram(shell, 0x2000, result, 0xFF);
 }
 
+/** Membuat directory sesuai path tertentu */
 void makeDirectory(char *path, int *result, char parentIndex)
 {
 	char dirs[SECTOR_SIZE];
@@ -741,7 +681,7 @@ void makeDirectory(char *path, int *result, char parentIndex)
 	}
 	else
 	{
-		clear(dirPath, MAX_DIRS*(MAX_DIRSNAME+1));
+		clear(dirPath, MAX_DIRS * (MAX_DIRSNAME + 1));
 		clear(folderName, MAX_DIRSNAME);
 		splitDirFilePath(path, dirPath, folderName);
 		//cek apakah parent dari foldernya ada
@@ -767,7 +707,7 @@ void makeDirectory(char *path, int *result, char parentIndex)
 				{
 					dirs[iterDirs * (MAX_DIRSNAME + 1) + temp + 1] = folderName[temp];
 				}
-				if(lenFolderName < 15)
+				if (lenFolderName < 15)
 				{
 					dirs[iterDirs * (MAX_DIRSNAME + 1) + temp + 1] = '\0';
 				}
@@ -784,6 +724,7 @@ void makeDirectory(char *path, int *result, char parentIndex)
 	}
 }
 
+/** Menghapus file pada path tertentu */
 void deleteFile(char *path, int *result, char parentIndex)
 {
 	char dirs[SECTOR_SIZE], file[SECTOR_SIZE], map[SECTOR_SIZE], sector[SECTOR_SIZE];
@@ -796,12 +737,12 @@ void deleteFile(char *path, int *result, char parentIndex)
 	searchFile(dirs, file, path, &idxFile, &succ, parentIndex);
 	if (succ)
 	{
-		file[idxFile * (MAX_FILENAME+1)] = 0x00;
-		file[(idxFile*(MAX_FILENAME+1))+1] = 0x00;
-		for (iterSector = 0; (iterSector < MAX_SECTORS) && (sector[idxFile*MAX_SECTORS + iterSector] != 0x00); iterSector++)
+		file[idxFile * (MAX_FILENAME + 1)] = 0x00;
+		file[(idxFile * (MAX_FILENAME + 1)) + 1] = 0x00;
+		for (iterSector = 0; (iterSector < MAX_SECTORS) && (sector[idxFile * MAX_SECTORS + iterSector] != 0x00); iterSector++)
 		{
-			map[sector[idxFile*MAX_SECTORS + iterSector]] = 0x00;
-			sector[idxFile*MAX_SECTORS + iterSector] = 0x00;
+			map[sector[idxFile * MAX_SECTORS + iterSector]] = 0x00;
+			sector[idxFile * MAX_SECTORS + iterSector] = 0x00;
 		}
 		interrupt(0x21, 0x03, dirs, DIRS_SECTOR, 0);
 		interrupt(0x21, 0x03, file, FILES_SECTOR, 0);
@@ -815,6 +756,7 @@ void deleteFile(char *path, int *result, char parentIndex)
 	}
 }
 
+//Logo di komen agar kernel muat di sektor
 // void printLogo()
 // {
 // 	printStringXY("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *", 0xD, 0, 0);
@@ -827,6 +769,7 @@ void deleteFile(char *path, int *result, char parentIndex)
 // 	printStringXY("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *", 0xD, 0, 7);
 // }
 
+/** Menghapus suatu dirrectory pada path tertentu */
 void deleteDirectory(char *path, int *success, char parentIndex)
 {
 	char dirs[SECTOR_SIZE], file[SECTOR_SIZE], map[SECTOR_SIZE], sector[SECTOR_SIZE];
@@ -845,9 +788,9 @@ void deleteDirectory(char *path, int *success, char parentIndex)
 		//Hapus semua dirs yang ada di folder ini secara rekursif
 		// printString("Hapus semua folder di folder ", FALSE);
 		// printString(path, TRUE);
-		for(iterDirs = 0; iterDirs < SECTOR_SIZE; iterDirs += (MAX_DIRSNAME+1))
+		for (iterDirs = 0; iterDirs < SECTOR_SIZE; iterDirs += (MAX_DIRSNAME + 1))
 		{
-			if(dirs[iterDirs] == idxFolder && iterDirs != idxFolder && dirs[iterDirs+1] != '\0')
+			if (dirs[iterDirs] == idxFolder && iterDirs != idxFolder && dirs[iterDirs + 1] != '\0')
 			{
 				//HAPUS
 				//copy dulu namanya, buat bikin path
@@ -857,10 +800,6 @@ void deleteDirectory(char *path, int *success, char parentIndex)
 					copied[j] = dirs[iterDirs + j + 1];
 				}
 				deleteDirectory(copied, success, idxFolder);
-				// if(!(*success == 0))
-				// {
-				// 	printString("WTF", TRUE);
-				// }
 				interrupt(0x21, 0x02, dirs, DIRS_SECTOR, 0);
 				interrupt(0x21, 0x02, file, FILES_SECTOR, 0);
 				interrupt(0x21, 0x02, map, MAP_SECTOR, 0);
@@ -874,24 +813,23 @@ void deleteDirectory(char *path, int *success, char parentIndex)
 		for (iterFile = 0; iterFile < SECTOR_SIZE; iterFile += (MAX_FILENAME + 1))
 		{
 			//printInt(iterFile, TRUE);
-			if (file[iterFile] == idxFolder && file[iterFile+1] != 0x00)
+			if (file[iterFile] == idxFolder && file[iterFile + 1] != 0x00)
 			{
 				// printString("Ada file disini, idxnya : ", FALSE);
 				// printInt(div(iterFile,16), TRUE);
 				file[iterFile] = 0x00;
-				file[iterFile+1] = 0x00;
-				for (iterSector = 0; (iterSector < MAX_SECTORS) && (sector[iterFile*MAX_SECTORS + iterSector] != 0x00); iterSector++)
+				file[iterFile + 1] = 0x00;
+				for (iterSector = 0; (iterSector < MAX_SECTORS) && (sector[iterFile * MAX_SECTORS + iterSector] != 0x00); iterSector++)
 				{
-					map[sector[iterFile*MAX_SECTORS + iterSector]] = 0x00;
-					sector[iterFile*MAX_SECTORS + iterSector] = 0x00;
+					map[sector[iterFile * MAX_SECTORS + iterSector]] = 0x00;
+					sector[iterFile * MAX_SECTORS + iterSector] = 0x00;
 				}
-
 			}
 		}
 		// printString("mengosongkan idx : ", FALSE);
 		// printInt(idxFolder, TRUE);
-		dirs[(idxFolder*16)] = 0x00;
-		dirs[(idxFolder*16)+1] = 0x00;
+		dirs[(idxFolder * 16)] = 0x00;
+		dirs[(idxFolder * 16) + 1] = 0x00;
 		interrupt(0x21, 0x03, dirs, DIRS_SECTOR, 0);
 		interrupt(0x21, 0x03, file, FILES_SECTOR, 0);
 		interrupt(0x21, 0x03, map, MAP_SECTOR, 0);
@@ -914,12 +852,7 @@ void putArgs(char curdir, char argc, char argv[64][128])
 	args[1] = argc;
 	i = 0;
 	j = 0;
-	// printString("argc : ", FALSE);
-	// printInt(argc, TRUE);
-	// printString("argv : ", FALSE);
-	// printString(argv[0], TRUE);
-	// printString(argv[1], TRUE);
-	// printString(argv[2], TRUE);
+
 	for (p = 2; p < ARGS_SECTOR && i < argc; ++p)
 	{
 		args[p] = argv[i][j];

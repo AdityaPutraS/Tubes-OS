@@ -1,60 +1,14 @@
 #define SECTOR_SIZE 512
-#define MAP_SECTOR 0x100     //Diubah agar sesuai spek
-#define DIRS_SECTOR 0x101    //Diubah agar sesuai spek
-#define FILES_SECTOR 0x102   //Ditambah agar sesuai spek
-#define SECTORS_SECTOR 0x103 //Ditambah agar sesuai spek
-#define MAX_DIRSNAME 15      //Ditambah agar sesuai spek
+#define MAP_SECTOR 0x100     
+#define DIRS_SECTOR 0x101    
+#define FILES_SECTOR 0x102   
+#define SECTORS_SECTOR 0x103 
+#define MAX_DIRSNAME 15      
 #define MAX_DIRS 32
 #define TRUE 1
 #define FALSE 0
 #define EMPTY 0x00
-
-/*
-    KOLOM CHAT
-    Todo list dong...
-    Urg coba cd yak
-    ok
-    
-    
-
-    TODO :
-    - cat (-w buat write)
-    - cd
-    - run lokal (cth : ./keyproc)
-    - run global (cth : keyproc) <- keyproc harus ada di root
-
-    Q&A
-
-    HOW TO USE:
-    1. pS, pI, pC
-        seperti namanya, print string, print integer, print char
-        nerima 2 parameter = yang mau di print dan apakah ada newline/tidak
-        ada newline/tidak pake TRUE/FALSE
-
-    2. interrupt
-        sama kaya di spek
-    
-    3. cara compile
-        run aja ./CompileOS.sh
-        terus cek di terminal, ada error ga, kalo ga ada teken c terus enter
-
-    4. argc -> banyakya argumen vektor
-       argv -> argumen vektornya
-       bener ga dit? ._.
-       bener fidh
-       argv[0] = commandnya
-       echo Hai ITB
-       argc = 2
-       argv = {"echo", "Hai", "ITB"}
-argumen vectorng diurusnyadimana ?
-
-    BUG:
-    1. Copy kadang bermasalah, kadang mau di suatu fungsi, kadang ngga
-    2. rm kadang kurang cepet ngapusnya, jadi lebih cepet keluar success drpd dia ngapus
-        jadinya filenya ga keapus tapi success
-    3. ls kalo 
-*/
-
+//Command Type
 #define echo 1
 #define cd 2
 #define ls 3
@@ -64,6 +18,7 @@ argumen vectorng diurusnyadimana ?
 #define runLocal 7
 #define runGlobal 8
 
+//Function Declaration
 void pS(char *string, int newLine);
 void pI(int i, int newLine);
 void pC(char c, int newLine);
@@ -80,163 +35,87 @@ void clear(char *buffer, int length);
 void searchDir(char *dirs, char *relPath, char *index, char *success, char parentIndex);
 void search(char *sector, char awal, char sisanya[15], char *index, char *success);
 
-int main()
-{
+int main() {
     int b1, b2, i, j, idx, num;
-    char isExit;
-    char curDir;
+    char isExit, curDir, argc, succ, ada, globalPIdx;
     char inputSeparator[1];
     char input[100], temp[100], fileName[15];
     int inputLen, splitLen;
     int type, copyStart, copyEnd;
-    char argc, succ, ada;
     char argv[64][128];
     char dirs[SECTOR_SIZE];
     char file[SECTOR_SIZE];
     int konstantaRun;
     char same;
-    char success;
 
     isExit = FALSE;
-    while (!isExit)
-    {
+    while (!isExit) {
         //Get input user
         interrupt(0x21, (0 << 8) | 0x0, "$ ", 0, 0);
         interrupt(0x21, (0 << 8) | 0x1, &input, 0, 0);
         len(input, &inputLen);
         count(input, 0x20, &splitLen);
+        
         //Get curdir
         interrupt(0x21, 0x21, &curDir, 0, 0);
-        pS("curDir : ", FALSE);
-        if (curDir == 0xFF)
-        {
-            pS("di Root", TRUE);
-        }
-        else
-        {
-            pI(curDir, TRUE);
-        }
-        //Get type commandnya
+        // pS("curDir : ", FALSE);
+        // if (curDir == 0xFF) {
+        //     pS("di Root", TRUE);
+        // } else {
+        //     pI(curDir, TRUE);
+        // }
+
+        //Get command type
         type = getCommandType(input);
+        
         //Get argc dan argv nya
         argc = splitLen;
         split(input, 0x20, argv); // <- get argumen vektor
-        if (type == echo)
-        {
-            pS("Command echo", TRUE);
+        if (type == echo) {
+            // pS("Command echo", TRUE);
             interrupt(0x21, 0x20, curDir, argc, argv + 1);
-            interrupt(0x21, curDir << 8 | 0x6, "echoUtil", 0x2000, &succ);
-        }
-        else if (type == cd)
-        {
-            pS("Command cd", TRUE);
-            if (argc > 1)
-            {
+            interrupt(0x21, curDir << 8 | 0x6, "echoUtil", 0x2000, &succ); //invoke executeProgram()
+        } else if (type == cd) {
+            // pS("Command cd", TRUE);
+            if (argc > 1) {
                 pS("Jumlah parameter cd harus 1 atau tidak sama sekali", TRUE);
-            }
-            else if (argc == 0)
-            {
+            } else if (argc == 0) {
                 curDir = 0xFF;
-                //Asyique
-            }
-            else if (argc == 1)
-            {
-                //KODE CD ADA DI SHELL BIAR GA DIHAPUS SAMA RM
-                //cek parameternya .. atau nama folder
-                if (isSame(argv[1], "..")) // btw fidh, ini ada kemungkinan ngebug, di urg kadang mau kadang ngga
-                {
-                    //Ambil dirs pake read sector
-                    //Cari parent dari index ke (curDir) di dirs
-                    //setArgs curdir jadi itu
-                    //run shell dengan args yang baru
-                    if (curDir != 0xFF)
-                    { //root
+                interrupt(0x21, 0x20, curDir, 0, 0);
+            } else if (argc == 1) {
+                if (isSame(argv[1], "..")) {
+                    if (curDir != 0xFF) { 
                         pS("Go up 1 level", TRUE);
                         interrupt(0x21, (0 << 8) | 0x02, dirs, DIRS_SECTOR, 0);
                         curDir = dirs[curDir * 16]; //parent dari curDir
                         interrupt(0x21, 0x20, curDir, 0, 0);
                     }
-                }
-                else
-                {
+                } else {
                     pS("Go to : ", FALSE);
                     pS(argv[1], TRUE);
-                    //Ambil dirs pake read sector
-                    //Cari index dari folder yang namanya argv[1] dan parentnya curdir
-                    //setArgs curdir jadi index folder itu
-                    //run shell dengan args yang baru
                     interrupt(0x21, (0 << 8) | 0x02, dirs, DIRS_SECTOR, 0);
-                    searchDir(dirs, argv[1], &idx, &success, curDir);
-                    if (success)
+                    searchDir(dirs, argv[1], &idx, &succ, curDir);
+                    if (succ)
                     {
-                        pS("Masuk ke tujuan bosque", TRUE);
+                        // pS("Masuk ke tujuan bosque", TRUE);
                         curDir = idx;
                         interrupt(0x21, 0x20, curDir, 0, 0);
                     }else{
                         pS(argv[1], FALSE);
                         pS(" not found", TRUE);
                     }
-                    //hmmm, seems legit
-                    //11/10
-                    //AWKAWKWKWKWKWK
-                    //ehiya ada yang kurang
-                    // kalo cd doang gapake argumen langsung ke root ga sih?
-                    // iya juga ya
                 }
             }
-        }
-        else if (type == ls)
-        {
-            pS("Command ls", TRUE);
-            if (argc != 0)
-            {
+        } else if (type == ls) {
+            // pS("Command ls", TRUE);
+            if (argc != 0) {
                 pS("ls tidak menerima parameter apapun", TRUE);
+            } else {
+                interrupt(0x21, 0x20, curDir, argc, argv + 1);
+                interrupt(0x21, 0xFF << 8 | 0x6, "ls", 0x2000, &succ);
             }
-            else
-            {
-                interrupt(0x21, (0 << 8) | 0x02, dirs, DIRS_SECTOR, 0);
-                interrupt(0x21, (0 << 8) | 0x02, file, FILES_SECTOR, 0);
-                pS("Isi : ", TRUE);
-                clear(fileName, 15);
-                pS("Folder : ", TRUE);
-                for (i = 0; i < SECTOR_SIZE; i+= 16)
-                {
-                    if (dirs[i] == curDir && dirs[i+1] != '\0')
-                    {
-                        clear(fileName, 15);
-                        for (j = 0; j < 15; j++)
-                        {
-                            fileName[j] = dirs[i + j + 1];
-                        }
-                        pS("   ", FALSE);
-                        pS(fileName, TRUE);
-                    }
-                }
-                pS("File : ", TRUE);
-                for (i = 0; i < SECTOR_SIZE; i+= 16)
-                {
-
-                    if (file[i] == curDir && file[i+1] != '\0')
-                    {
-                        clear(fileName, 15);
-                        for (j = 0; j < 15; j++)
-                        {
-                            fileName[j] = file[i + j + 1];
-                        }
-                        pS("   ", FALSE);
-                        pS(fileName, TRUE);
-                    }
-                }
-                // interrupt(0x21, 0x20, curDir, argc, argv + 1);
-                // // pS("argv : ", FALSE);
-                // // pS(argv[0],TRUE);
-                // interrupt(0x21, curDir << 8 | 0x6, "ls", 0x2000, &succ);
-            }
-        }
-        else if (type == mkdir)
-        {
-            //TODO : mkdir bisa banyak parameter
-            pS("Command mkdir", TRUE);
+        } else if (type == mkdir) {
+            // pS("Command mkdir", TRUE);
             if (argc != 1)
             {
                 pS("Jumlah parameter mkdir harus 1", TRUE);
@@ -244,14 +123,12 @@ int main()
             else
             {
                 interrupt(0x21, 0x20, curDir, argc, argv + 1);
-                // pS("argv : ", FALSE);
-                // pS(argv[0],TRUE);
-                interrupt(0x21, curDir << 8 | 0x6, "mkdir", 0x2000, &succ);
+                interrupt(0x21, 0xFF << 8 | 0x6, "mkdir", 0x2000, &succ);
             }
         }
         else if (type == rm)
         {
-            pS("Command rm", TRUE);
+            // pS("Command rm", TRUE);
             if (argc != 1)
             {
                 pS("Jumlah parameter rm harus 1", TRUE);
@@ -277,7 +154,7 @@ int main()
         }
         else if (type == cat)
         {
-            pS("Command cat", TRUE);
+            // pS("Command cat", TRUE);
             if (argc != 1 && argc != 2)
             {
                 pS("cat menerima 1 / 2 parameter", TRUE);
@@ -285,24 +162,26 @@ int main()
             else
             {
                 interrupt(0x21, 0x20, curDir, argc, argv + 1);
-                interrupt(0x21, curDir << 8 | 0x6, "cat", 0x2000, &succ);
+                interrupt(0x21, 0xFF << 8 | 0x6, "cat", 0x2000, &succ);
             }
         }
         else if (type == runLocal || type == runGlobal)
         {
             if (type == runLocal)
             {
-                pS("Command runLocal", TRUE);
+                // pS("Command runLocal", TRUE);
                 konstantaRun = 2;
+                globalPIdx = curDir;
             }
             else
             {
-                pS("Command runGlobal", TRUE);
+                // pS("Command runGlobal", TRUE);
                 konstantaRun = 0;
+                globalPIdx = 0xFF;
             }
             interrupt(0x21, 0x02, file, FILES_SECTOR, 0);
             //Cek dulu apakah filenya ada
-            search(file, curDir, argv[0]+konstantaRun,&i, &ada);
+            search(file, globalPIdx, argv[0]+konstantaRun,&i, &ada);
             if (ada)
             {
                 //argv[0] = nama file yang mau di run (mulai dari index ke 2)
@@ -311,7 +190,7 @@ int main()
                 //persiapan args
                 interrupt(0x21, 0x20, curDir, argc, argv + 1);
                 //run programnya
-                interrupt(0x21, curDir << 8 | 0x6, argv[0] + konstantaRun, 0x2000, &succ);
+                interrupt(0x21, globalPIdx << 8 | 0x6, argv[0] + konstantaRun, 0x2000, &succ);
             }
             else
             {
@@ -354,7 +233,7 @@ void search(char *sector, char awal, char sisanya[15], char *index, char *succes
 void searchDir(char *dirs, char *relPath, char *index, char *success, char parentIndex)
 {
     int i, pathLength, countSlash;
-    char pathSplitted[MAX_DIRS][MAX_DIRSNAME];
+    char pathSplitted[64][128];
     char cari[MAX_DIRSNAME];
     if (relPath[0] == '\0')
     {
@@ -367,12 +246,12 @@ void searchDir(char *dirs, char *relPath, char *index, char *success, char paren
         len(relPath, &pathLength);
         count(relPath, '/', &countSlash);
         split(relPath, '/', pathSplitted);
-        // printString("isi 0 : ", FALSE);
-        // printString(pathSplitted[0], TRUE);
-        // printString("isi 1 : ", FALSE);
-        // printString(pathSplitted[1], TRUE);
-        // printString("count slash : ", FALSE);
-        // printInt(countSlash, TRUE);
+        // pS("isi 0 : ", FALSE);
+        // pS(pathSplitted[0], TRUE);
+        // pS("isi 1 : ", FALSE);
+        // pS(pathSplitted[1], TRUE);
+        // pS("count slash : ", FALSE);
+        // pI(countSlash, TRUE);
         *success = TRUE;
         for (i = 0; (i < (countSlash + 1)) && *success; i++)
         {
@@ -381,17 +260,16 @@ void searchDir(char *dirs, char *relPath, char *index, char *success, char paren
             clear(cari, 15);
             copy(pathSplitted[i], cari, 0, 15);
             search(dirs, parentIndex, cari, index, success);
-            if (!success)
-            {
-                // printString("BANGSAT", TRUE);
-            }
+            // if (!success)
+            // {
+                // printString("Idx tidak ditemukan", TRUE);
+            // }
             parentIndex = *index;
         }
     }
 }
-//urg debugging dulu kalo gitu
-void clear(char *buffer, int length)
-{
+
+void clear(char *buffer, int length) {
     int i;
     for (i = 0; i < length; ++i)
     {
@@ -408,6 +286,7 @@ void split(char *string, char separator, char splitted[64][128])
     clear(splitted[0], 128);
     while (string[i] != '\0')
     {
+        // pC(string[i], FALSE);
         if (string[i] == separator)
         {
             splitted[j][k] = '\0';

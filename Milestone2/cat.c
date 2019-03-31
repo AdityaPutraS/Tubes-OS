@@ -30,6 +30,7 @@ int main()
         {
             //Write mode
             clear(isiFile, MAX_SECTORS * SECTOR_SIZE);
+            interrupt(0x21, 0x0, "Isi : ", 1, 0);
             interrupt(0x21, 0x1, isiFile, 0, 0);
             //Tulis input ke file
             interrupt(0x21, curdir << 8 | 0x05, isiFile, argv[0], &berhasil);
@@ -66,7 +67,7 @@ int main()
     }
     //Keluar dari sini
     interrupt(0x21, 0x20, curdir, 0, 0);
-	interrupt(0x21, curdir << 8 | 0x6, "shell", 0x2000, &temp);
+	interrupt(0x21, 0x7, &temp, 0, 0);
 }
 
 void pS(char *string, int newLine)

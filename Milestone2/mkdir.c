@@ -5,8 +5,7 @@ void pS(char *string, int newLine);
 void pI(int i, int newLine);
 void pC(char c, int newLine);
 
-int main()
-{
+int main() {
     int berhasil;
     char curdir;
     char argc;
@@ -35,7 +34,7 @@ int main()
     }
     //Keluar dari sini
     interrupt(0x21, 0x20, curdir, 0, 0);
-	interrupt(0x21, curdir << 8 | 0x6, "shell", 0x2000, &temp);
+	interrupt(0x21, 0x7, &temp, 0, 0);
 }
 
 void pS(char *string, int newLine)

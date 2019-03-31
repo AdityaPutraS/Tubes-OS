@@ -14,7 +14,7 @@ void clear(char *buffer, int length);
 
 int main()
 {
-    int iter, j;
+    int i, j;
     char curdir;
     char dirs[SECTOR_SIZE], file[SECTOR_SIZE];
     char fileName[15];
@@ -24,38 +24,33 @@ int main()
     interrupt(0x21, 0x02, file, FILES_SECTOR, 0);
     pS("Isi : ", TRUE);
     clear(fileName, 15);
+    pS("   ", FALSE);
     pS("Folder : ", TRUE);
-    for (iter = 0; iter < SECTOR_SIZE; iter++)
-    {
-        if (dirs[iter] == curdir)
-        {
+    for (i = 0; i < SECTOR_SIZE; i+= 16) {
+        if (dirs[i] == curdir && dirs[i+1] != '\0') {
             clear(fileName, 15);
-            for (j = 0; j < 15; j++)
-            {
-                fileName[j] = dirs[iter + j + 1];
+            for (j = 0; j < 15; j++) {
+                fileName[j] = dirs[i + j + 1];
             }
-            pS("   ", FALSE);
+            pS("      ", FALSE);
             pS(fileName, TRUE);
         }
     }
+    pS("   ", FALSE);
     pS("File : ", TRUE);
-    for (iter = 0; iter < SECTOR_SIZE; iter++)
-    {
-
-        if (file[iter] == curdir)
-        {
+    for (i = 0; i < SECTOR_SIZE; i+= 16) {
+        if (file[i] == curdir && file[i+1] != '\0') {
             clear(fileName, 15);
-            for (j = 0; j < 15; j++)
-            {
-                fileName[j] = file[iter + j + 1];
+            for (j = 0; j < 15; j++) {
+                fileName[j] = file[i + j + 1];
             }
-            pS("   ", FALSE);
+            pS("      ", FALSE);
             pS(fileName, TRUE);
         }
     }
     //keluar dari sini
     interrupt(0x21, 0x20, curdir, 0, 0);
-    interrupt(0x21, curdir << 8 | 0x6, "shell", 0x2000, &temp);
+    interrupt(0x21, 0x7, &temp, 0, 0);
 }
 
 void pS(char *string, int newLine)

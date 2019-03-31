@@ -30,6 +30,9 @@ ld86 -o echoUtil -d echoUtil.o lib_asm.o
 bcc -ansi -c -o mkdir.o mkdir.c
 ld86 -o mkdir -d mkdir.o lib_asm.o
 ./loadFile mkdir
+bcc -ansi -c -o ls.o ls.c
+ld86 -o ls -d ls.o lib_asm.o
+./loadFile ls
 bcc -ansi -c -o cat.o cat.c
 ld86 -o cat -d cat.o lib_asm.o
 ./loadFile cat
