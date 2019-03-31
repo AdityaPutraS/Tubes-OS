@@ -74,7 +74,7 @@ int main()
 	makeDirectory("test/a", &suc, 0xFF);
 	deleteDirectory("test", &suc, 0xFF);
 	makeDirectory("kl",&suc, 0xFF);
-	makeDirectory("abcdefghijklmno",&suc, 0xFF);
+	makeDirectory("abcdefghijklmn",&suc, 0xFF);
 	deleteDirectory("test", &suc, 0xFF);
 	deleteDirectory("kl", &suc, 0xFF);
 	//interrupt(0x21, 0xFF << 8 | 0x0, "SELESAI BOIS", 1 ,0);
@@ -516,10 +516,12 @@ void writeAllSector(char *dirs, char *file, char *map, char *sector)
 void readFile(char *buffer, char *path, int *result, char parentIndex)
 {
 	//Baca sector dirs
-	char dirs[SECTOR_SIZE], file[SECTOR_SIZE], map[SECTOR_SIZE], sector[SECTOR_SIZE];
+	char dirs[SECTOR_SIZE], file[SECTOR_SIZE], sector[SECTOR_SIZE];
 	int iterSector, idxFile;
 	char succ;
-	readAllSector(dirs, file, map, sector);
+	interrupt(0x21, 0x02, dirs, DIRS_SECTOR, 0);
+	interrupt(0x21, 0x02, file, FILES_SECTOR, 0);
+	interrupt(0x21, 0x02, sector, SECTORS_SECTOR, 0);
 	//Cari index file yang sesuai dengan path
 	searchFile(dirs, file, path, &idxFile, &succ, parentIndex);
 	if (succ)
@@ -529,7 +531,8 @@ void readFile(char *buffer, char *path, int *result, char parentIndex)
 		{
 			if (sector[idxFile * 16 + iterSector] != 0x00)
 			{
-				readSector(buffer + iterSector * SECTOR_SIZE, sector[idxFile * 16 + iterSector]);
+				interrupt(0x21, 0x02, buffer + iterSector * SECTOR_SIZE, sector[idxFile * 16 + iterSector], 0);
+				//readSector(buffer + iterSector * SECTOR_SIZE, sector[idxFile * 16 + iterSector]);
 			}
 			else
 			{
@@ -565,7 +568,10 @@ void writeFile(char *buffer, char *path, int *sectors, char parentIndex)
 	char succ;
 	char parentFile;
 	int divBuffSec;
-	readAllSector(dirs, file, map, sector);
+	interrupt(0x21, 0x02, dirs, DIRS_SECTOR, 0);
+	interrupt(0x21, 0x02, file, FILES_SECTOR, 0);
+	interrupt(0x21, 0x02, map, MAP_SECTOR, 0);
+	interrupt(0x21, 0x02, sector, SECTORS_SECTOR, 0);
 	//Cek jumlah sektor kosong di map
 	cntMapKosong = 0;
 	for (i = 0; i < SECTOR_SIZE; i++)
@@ -624,9 +630,13 @@ void writeFile(char *buffer, char *path, int *sectors, char parentIndex)
 						map[iterMap] = 0xFF;
 						sector[idxFile * (MAX_FILENAME + 1) + i] = iterMap;
 						copy(buffer, sectorBuffer, i * SECTOR_SIZE, SECTOR_SIZE);
-						writeSector(sectorBuffer, iterMap);
+						interrupt(0x21, 0x03, sectorBuffer, iterMap, 0);
+						//writeSector(sectorBuffer, iterMap);
 					}
-					writeAllSector(dirs, file, map, sector);
+					interrupt(0x21, 0x03, dirs, DIRS_SECTOR, 0);
+					interrupt(0x21, 0x03, file, FILES_SECTOR, 0);
+					interrupt(0x21, 0x03, map, MAP_SECTOR, 0);
+					interrupt(0x21, 0x03, sector, SECTORS_SECTOR, 0);
 				}
 			}
 			else
@@ -680,7 +690,8 @@ void makeDirectory(char *path, int *result, char parentIndex)
 	int lenFolderName;
 	int iterDirs, temp, idxParent;
 	char succ;
-	readSector(dirs, DIRS_SECTOR);
+	interrupt(0x21, 0x02, dirs, DIRS_SECTOR, 0);
+	// readSector(dirs, DIRS_SECTOR);
 	for (iterDirs = 0; (iterDirs < MAX_DIRS) && (dirs[iterDirs * (MAX_DIRSNAME + 1) + 1] != 0x00); iterDirs++)
 	{
 	}
@@ -721,7 +732,8 @@ void makeDirectory(char *path, int *result, char parentIndex)
 				{
 					dirs[iterDirs * (MAX_DIRSNAME + 1) + temp + 1] = '\0';
 				}
-				writeSector(dirs, DIRS_SECTOR);
+				interrupt(0x21, 0x03, dirs, DIRS_SECTOR, 0);
+				// writeSector(dirs, DIRS_SECTOR);
 				*result = 0; //Success
 			}
 		}
@@ -738,7 +750,10 @@ void deleteFile(char *path, int *result, char parentIndex)
 	char dirs[SECTOR_SIZE], file[SECTOR_SIZE], map[SECTOR_SIZE], sector[SECTOR_SIZE];
 	int idxFile, iterSector;
 	char succ;
-	readAllSector(dirs, file, map, sector);
+	interrupt(0x21, 0x02, dirs, DIRS_SECTOR, 0);
+	interrupt(0x21, 0x02, file, FILES_SECTOR, 0);
+	interrupt(0x21, 0x02, map, MAP_SECTOR, 0);
+	interrupt(0x21, 0x02, sector, SECTORS_SECTOR, 0);
 	searchFile(dirs, file, path, &idxFile, &succ, parentIndex);
 	if (succ)
 	{
@@ -749,7 +764,10 @@ void deleteFile(char *path, int *result, char parentIndex)
 			map[sector[idxFile*MAX_SECTORS + iterSector]] = 0x00;
 			sector[idxFile*MAX_SECTORS + iterSector] = 0x00;
 		}
-		writeAllSector(dirs, file, map, sector);
+		interrupt(0x21, 0x03, dirs, DIRS_SECTOR, 0);
+		interrupt(0x21, 0x03, file, FILES_SECTOR, 0);
+		interrupt(0x21, 0x03, map, MAP_SECTOR, 0);
+		interrupt(0x21, 0x03, sector, SECTORS_SECTOR, 0);
 		*result = 0; //Success
 	}
 	else
@@ -778,7 +796,10 @@ void deleteDirectory(char *path, int *success, char parentIndex)
 	char succ;
 	// printString("Menghapus : ", FALSE);
 	// printString(path, TRUE);
-	readAllSector(dirs, file, map, sector);
+	interrupt(0x21, 0x02, dirs, DIRS_SECTOR, 0);
+	interrupt(0x21, 0x02, file, FILES_SECTOR, 0);
+	interrupt(0x21, 0x02, map, MAP_SECTOR, 0);
+	interrupt(0x21, 0x02, sector, SECTORS_SECTOR, 0);
 	searchDir(dirs, path, &idxFolder, &succ, parentIndex);
 	if (succ)
 	{
@@ -801,7 +822,10 @@ void deleteDirectory(char *path, int *success, char parentIndex)
 				// {
 				// 	printString("WTF", TRUE);
 				// }
-				readAllSector(dirs, file, map, sector);
+				interrupt(0x21, 0x02, dirs, DIRS_SECTOR, 0);
+				interrupt(0x21, 0x02, file, FILES_SECTOR, 0);
+				interrupt(0x21, 0x02, map, MAP_SECTOR, 0);
+				interrupt(0x21, 0x02, sector, SECTORS_SECTOR, 0);
 			}
 		}
 		//////////////////////////////////////////////////////////
@@ -829,7 +853,10 @@ void deleteDirectory(char *path, int *success, char parentIndex)
 		// printInt(idxFolder, TRUE);
 		dirs[(idxFolder*16)] = 0x00;
 		dirs[(idxFolder*16)+1] = 0x00;
-		writeAllSector(dirs, file, map, sector);
+		interrupt(0x21, 0x03, dirs, DIRS_SECTOR, 0);
+		interrupt(0x21, 0x03, file, FILES_SECTOR, 0);
+		interrupt(0x21, 0x03, map, MAP_SECTOR, 0);
+		interrupt(0x21, 0x03, sector, SECTORS_SECTOR, 0);
 		*success = 0; //Sucess
 	}
 	else
@@ -867,21 +894,23 @@ void putArgs(char curdir, char argc, char argv[64][128])
 			++j;
 		}
 	}
-
-	writeSector(args, ARGS_SECTOR);
+	interrupt(0x21, 0x03, args, ARGS_SECTOR, 0);
+	// writeSector(args, ARGS_SECTOR);
 }
 
 void getCurdir(char *curdir)
 {
 	char args[SECTOR_SIZE];
-	readSector(args, ARGS_SECTOR);
+	interrupt(0x21, 0x02, args, ARGS_SECTOR, 0);
+	// readSector(args, ARGS_SECTOR);
 	*curdir = args[0];
 }
 
 void getArgc(char *argc)
 {
 	char args[SECTOR_SIZE];
-	readSector(args, ARGS_SECTOR);
+	interrupt(0x21, 0x02, args, ARGS_SECTOR, 0);
+	// readSector(args, ARGS_SECTOR);
 	*argc = args[1];
 }
 
@@ -889,7 +918,8 @@ void getArgv(char index, char *argv)
 {
 	char args[SECTOR_SIZE];
 	int i, j, p;
-	readSector(args, ARGS_SECTOR);
+	interrupt(0x21, 0x02, args, ARGS_SECTOR, 0);
+	// readSector(args, ARGS_SECTOR);
 
 	i = 0;
 	j = 0;

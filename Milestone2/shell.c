@@ -27,6 +27,7 @@ void clear(char *buffer, int length);
 
 int main()
 {
+    int b1, b2;
     char isExit;
     char curDir;
     char inputSeparator[1];
@@ -36,102 +37,113 @@ int main()
     char argc, succ;
     char argv[64][128];
     isExit = FALSE;
-    // while (!isExit)
-    // {
-    //Get input user
-    interrupt(0x21, (0 << 8) | 0x0, "$ ", 0, 0);
-    interrupt(0x21, (0 << 8) | 0x1, &input, 0, 0);
-    len(input, &inputLen);
-    count(input, 0x20, &splitLen);
-    //Get curdir
-    interrupt(0x21, 0x21, &curDir, 0, 0);
-    pS("curDir : ", FALSE);
-    if (curDir == 0x00)
+    while (!isExit)
     {
-        pS("di 0", TRUE);
-    }
-    else if (curDir == 0xFF)
-    {
-        pS("di Root", TRUE);
-    }
-    else
-    {
-        pI(curDir, TRUE);
-    }
-    //Get type commandnya
-    type = getCommandType(input);
-    //Get argc dan argv nya
-    argc = splitLen;
-    split(input, 0x20, argv);
-    if (type == echo)
-    {
-        pS("Command echo", TRUE);
-        interrupt(0x21, 0x20, curDir, argc, argv + 1);
-        interrupt(0x21, curDir << 8 | 0x6, "echoUtil", 0x2000, &succ);
-    }
-    else if (type == cd)
-    {
-        pS("Command echo", TRUE);
-    }
-    else if (type == ls)
-    {
-        pS("Command ls", TRUE);
-        if (argc != 0)
+        //Get input user
+        interrupt(0x21, (0 << 8) | 0x0, "$ ", 0, 0);
+        interrupt(0x21, (0 << 8) | 0x1, &input, 0, 0);
+        len(input, &inputLen);
+        count(input, 0x20, &splitLen);
+        //Get curdir
+        interrupt(0x21, 0x21, &curDir, 0, 0);
+        pS("curDir : ", FALSE);
+        if (curDir == 0x00)
         {
-            pS("ls tidak menerima parameter apapun", TRUE);
+            pS("di 0", TRUE);
+        }
+        else if (curDir == 0xFF)
+        {
+            pS("di Root", TRUE);
         }
         else
         {
+            pI(curDir, TRUE);
+        }
+        //Get type commandnya
+        type = getCommandType(input);
+        //Get argc dan argv nya
+        argc = splitLen;
+        split(input, 0x20, argv);
+        if (type == echo)
+        {
+            pS("Command echo", TRUE);
             interrupt(0x21, 0x20, curDir, argc, argv + 1);
-            // pS("argv : ", FALSE);
-            // pS(argv[0],TRUE);
-            interrupt(0x21, curDir << 8 | 0x6, "ls", 0x2000, &succ);
+            interrupt(0x21, curDir << 8 | 0x6, "echoUtil", 0x2000, &succ);
         }
-    }
-    else if (type == mkdir)
-    {
-        //TODO : mkdir bisa banyak parameter
-        pS("Command mkdir", TRUE);
-        if (argc != 1)
+        else if (type == cd)
         {
-            pS("Jumlah parameter mkdir harus 1", TRUE);
+            pS("Command cd", TRUE);
         }
-        else
+        else if (type == ls)
         {
-            interrupt(0x21, 0x20, curDir, argc, argv + 1);
-            // pS("argv : ", FALSE);
-            // pS(argv[0],TRUE);
-            interrupt(0x21, curDir << 8 | 0x6, "mkdir", 0x2000, &succ);
+            pS("Command ls", TRUE);
+            if (argc != 0)
+            {
+                pS("ls tidak menerima parameter apapun", TRUE);
+            }
+            else
+            {
+                interrupt(0x21, 0x20, curDir, argc, argv + 1);
+                // pS("argv : ", FALSE);
+                // pS(argv[0],TRUE);
+                interrupt(0x21, curDir << 8 | 0x6, "ls", 0x2000, &succ);
+            }
         }
-    }
-    else if (type == rm)
-    {
-        pS("Command rm", TRUE);
-        if (argc != 1)
+        else if (type == mkdir)
         {
-            pS("Jumlah parameter rm harus 1", TRUE);
+            //TODO : mkdir bisa banyak parameter
+            pS("Command mkdir", TRUE);
+            if (argc != 1)
+            {
+                pS("Jumlah parameter mkdir harus 1", TRUE);
+            }
+            else
+            {
+                interrupt(0x21, 0x20, curDir, argc, argv + 1);
+                // pS("argv : ", FALSE);
+                // pS(argv[0],TRUE);
+                interrupt(0x21, curDir << 8 | 0x6, "mkdir", 0x2000, &succ);
+            }
         }
-        else
+        else if (type == rm)
         {
-            interrupt(0x21, 0x20, curDir, argc, argv + 1);
-            // pS("argv : ", FALSE);
-            // pS(argv[0],TRUE);
-            interrupt(0x21, curDir << 8 | 0x6, "rm", 0x2000, &succ);
+            pS("Command rm", TRUE);
+            if (argc != 1)
+            {
+                pS("Jumlah parameter rm harus 1", TRUE);
+            }
+            else
+            {
+                //KODE RM DI SHELL AGAR TIDAK BISA DIHAPUS MENGGUNAKKAN RM
+                interrupt(0x21, curDir << 8 | 0x0A, argv[1], &b1, 0);
+                interrupt(0x21, curDir << 8 | 0x09, argv[1], &b2, 0);
+                if (b1 == -1 && b2 == -1)
+                {
+                    pS("PATH NOT_FOUND", TRUE);
+                }
+                else if (b1 == 0 || b2 == 0)
+                {
+                    pS("SUCCESS", TRUE);
+                }
+                else
+                {
+                    pS("FAILED, UNKNOWN REASON", TRUE);
+                }
+            }
+        }
+        else if (type == cat)
+        {
+            pS("Command cat", TRUE);
+        }
+        else if (type == runLocal)
+        {
+            pS("Command runLocal", TRUE);
+        }
+        else if (type == runGlobal)
+        {
+            pS("Command runGlobal", TRUE);
         }
     }
-    else if (type == cat)
-    {
-        pS("Command cat", TRUE);
-    }
-    else if (type == runLocal)
-    {
-        pS("Command runLocal", TRUE);
-    }
-    else if (type == runGlobal)
-    {
-        pS("Command runGlobal", TRUE);
-    }
-    // }
 }
 
 void clear(char *buffer, int length)

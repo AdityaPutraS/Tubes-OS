@@ -35,8 +35,5 @@ ld86 -o mkdir -d mkdir.o lib_asm.o
 bcc -ansi -c -o ls.o ls.c
 ld86 -o ls -d ls.o lib_asm.o
 ./loadFile ls
-bcc -ansi -c -o rm.o rm.c
-ld86 -o rm -d rm.o lib_asm.o
-./loadFile rm
 echo Load bochs
 bochs -f opsys.bxrc
