@@ -82,6 +82,7 @@ int main()
 	interrupt(0x21, 0xFF << 8 | 0x6, "shell", 0x2000, &suc);
 	while (1)
 	{
+	
 	}
 }
 

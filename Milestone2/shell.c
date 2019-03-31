@@ -1,6 +1,59 @@
+#define SECTOR_SIZE 512
+#define MAP_SECTOR 0x100	 //Diubah agar sesuai spek
+#define DIRS_SECTOR 0x101	//Diubah agar sesuai spek
+#define FILES_SECTOR 0x102   //Ditambah agar sesuai spek
+#define SECTORS_SECTOR 0x103 //Ditambah agar sesuai spek
+#define MAX_DIRSNAME 15		 //Ditambah agar sesuai spek
 #define TRUE 1
 #define FALSE 0
 #define EMPTY 0x00
+
+/*
+    KOLOM CHAT
+    Todo list dong...
+    Urg coba cd yak
+    ok
+    
+    
+
+    TODO :
+    - cat (-w buat write)
+    - cd
+    - run lokal (cth : ./keyproc)
+    - run global (cth : keyproc) <- keyproc harus ada di root
+
+    Q&A
+
+    HOW TO USE:
+    1. pS, pI, pC
+        seperti namanya, print string, print integer, print char
+        nerima 2 parameter = yang mau di print dan apakah ada newline/tidak
+        ada newline/tidak pake TRUE/FALSE
+
+    2. interrupt
+        sama kaya di spek
+    
+    3. cara compile
+        run aja ./CompileOS.sh
+        terus cek di terminal, ada error ga, kalo ga ada teken c terus enter
+
+    4. argc -> banyakya argumen vektor
+       argv -> argumen vektornya
+       bener ga dit? ._.
+       bener fidh
+       argv[0] = commandnya
+       echo Hai ITB
+       argc = 2
+       argv = {"echo", "Hai", "ITB"}
+argumen vectorng diurusnyadimana ?
+
+    BUG:
+    1. Copy kadang bermasalah, kadang mau di suatu fungsi, kadang ngga
+    2. rm kadang kurang cepet ngapusnya, jadi lebih cepet keluar success drpd dia ngapus
+        jadinya filenya ga keapus tapi success
+    3. ls kalo 
+*/
+
 
 #define echo 1
 #define cd 2
@@ -27,15 +80,19 @@ void clear(char *buffer, int length);
 
 int main()
 {
-    int b1, b2;
+    int b1, b2, i, j;
     char isExit;
     char curDir;
     char inputSeparator[1];
-    char input[100], temp[100];
+    char input[100], temp[100], fileName[15];
     int inputLen, splitLen;
     int type, i, copyStart, copyEnd;
-    char argc, succ;
+    char argc, succ, ada;
     char argv[64][128];
+    char dirs[SECTOR_SIZE];
+    char file[SECTOR_SIZE];
+    int konstantaRun;
+
     isExit = FALSE;
     while (!isExit)
     {
@@ -63,7 +120,7 @@ int main()
         type = getCommandType(input);
         //Get argc dan argv nya
         argc = splitLen;
-        split(input, 0x20, argv);
+        split(input, 0x20, argv);   // <- get argumen vektor
         if (type == echo)
         {
             pS("Command echo", TRUE);
@@ -73,6 +130,49 @@ int main()
         else if (type == cd)
         {
             pS("Command cd", TRUE);
+            if (argc != 1)
+            {
+                pS("Jumlah parameter cd harus 1", TRUE);
+            }
+            else
+            {
+                //KODE CD ADA DI SHELL BIAR GA DIHAPUS SAMA RM
+                //cek parameternya .. atau nama folder
+                if(isSame(argv[1], ".."))   // btw fidh, ini ada kemungkinan ngebug, di urg kadang mau kadang ngga
+                {   
+                    //nanti dipindah
+                    char currDirName[MAX_DIRSNAME];
+                    char same;
+                    //Ambil dirs pake read sector
+                    //Cari parent dari index ke (curDir) di dirs
+                    //setArgs curdir jadi itu
+                    //run shell dengan args yang baru
+                    pS("Go up 1 level", TRUE);
+                    interrupt(0x21, (0 << 8) | 0x02, dirs, DIRS_SECTOR, 0);
+                    for (i = 1; i <= 0xF; i++) {
+                        currDirName[i - 1] = dirs[curDir*16 + i];
+                    }
+                    same = TRUE;
+                    for (i = 0; i < SECTOR_SIZE; i += 16) {
+                        for (j = 1; j <= MAX_DIRSNAME; j++) {
+                            //FIDH, line urg kalo dh kelar ya
+                            //urg dh kelar buat cat sama run program, mau boker dulu
+                            //Jangan dimatiin lepinya, hostnya maneh, siaap
+                            //oke, urg tetep nyalain laptopnya
+                            //wait, urg push github dulu, jangan edit apa apa dulu fidh
+                            //siap
+                        }
+                    }
+                } else {
+                    pS("Go to : ", FALSE);
+                    pS(argv[1], TRUE);
+                    //Ambil dirs pake read sector
+                    //Cari index dari folder yang namanya argv[1] dan parentnya curdir
+                    //setArgs curdir jadi index folder itu
+                    //run shell dengan args yang baru
+                }
+            }
+
         }
         else if (type == ls)
         {
@@ -134,14 +234,53 @@ int main()
         else if (type == cat)
         {
             pS("Command cat", TRUE);
+            if (argc != 1 || argc != 2)
+            {
+                pS("cat menerima 1 / 2 parameter", TRUE);
+            }
+            else
+            {
+                interrupt(0x21, 0x20, curDir, argc, argv + 1);
+                interrupt(0x21, curDir << 8 | 0x6, "cat", 0x2000, &succ);
+            }
         }
-        else if (type == runLocal)
+        else if (type == runLocal || type == runGlobal)
         {
-            pS("Command runLocal", TRUE);
-        }
-        else if (type == runGlobal)
-        {
-            pS("Command runGlobal", TRUE);
+            if(type == runLocal)
+            {
+                pS("Command runLocal", TRUE);
+                konstantaRun = 2;
+            }else{
+                pS("Command runGlobal", TRUE);
+                konstantaRun = 0;
+            }
+            interrupt(0x21, 0x02, file, FILES_SECTOR, 0);
+            //Cek dulu apakah filenya ada
+            ada = FALSE;
+            for (i = 0; (i < SECTOR_SIZE) && !ada; i++)
+            {
+                if (file[i] == curDir)
+                {
+                    clear(fileName, 15);
+                    for (j = 0; j < 15; j++)
+                    {
+                        fileName[j] = file[i + j + 1];
+                    }
+                    ada = isSame(argv[0]+konstantaRun,fileName);
+                }
+            }
+            if(ada){
+                //argv[0] = nama file yang mau di run (mulai dari index ke 2)
+                //sisanya = parameternya
+
+                //persiapan args
+                interrupt(0x21, 0x20, curDir, argc, argv + 1);
+                //run programnya
+                interrupt(0x21, curDir << 8 | 0x6, argv[0]+konstantaRun, 0x2000, &succ);
+            }else{
+                pS(argv[0]+konstantaRun,FALSE);
+                pS(" not found", TRUE);
+            }
         }
     }
 }
