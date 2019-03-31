@@ -12,12 +12,16 @@
 
 void pS(char *string, int newLine);
 void pI(int i, int newLine);
+void pC(char c, int newLine);
 void len(char *string, int *length);
 void count(char *string, char c, int *banyak);
 char isSame(char *s1, char *s2);
 void copy(char *string, char *copied, int start, int length);
 int find(char *s, char c);
 int getCommandType(char *string);
+void concat(char *s1, char *s2, char isiNull, int len1);
+void replace(char *s, char cari, char tukar);
+void split(char *string, char separator, char splitted[64][128]);
 
 int main()
 {
@@ -28,7 +32,7 @@ int main()
     int inputLen, splitLen;
     int type, i, copyStart, copyEnd;
     char argc, succ;
-    char *argv[64];
+    char argv[64][128];
     isExit = FALSE;
     while (!isExit)
     {
@@ -39,34 +43,13 @@ int main()
         count(input, 0x20, &splitLen);
         //Get curdir
         interrupt(0x21, 0x21, &curDir, 0, 0);
-        pS("curdir : ", FALSE);
-        pI(curDir,TRUE);
         //Get type commandnya
         type = getCommandType(input);
         if (type == echo)
         {
             argc = splitLen;
-            //pI(argc, TRUE);
-            copyStart = find(input, 0x20);
-            for(i = 0; i < argc; i++)
-            {
-                copyEnd = find(input+copyStart+1, 0x20);
-                if(copyEnd == -1)
-                {
-                    copyEnd = inputLen -copyStart-1;
-                }
-                pS("letak argv : ", FALSE);
-                pI(argv[0][0], TRUE);
-                copy(input, argv[i], copyStart, copyEnd+1);
-                pS("letak argv : ", FALSE);
-                pI(argv[0][0], TRUE);
-                // pI(copyStart, FALSE);
-                // pI(copyEnd, FALSE);
-                // pS(argv[i], TRUE);
-                copyStart += copyEnd+1;
-            }
-            interrupt(0x21, 0x20, curDir, argc, argv);
-            //pS("Go echo", TRUE);
+            split(input, 0x20, argv);
+            interrupt(0x21, 0x20, curDir, argc, argv+1);
             interrupt(0x21, 0xFF << 8 | 0x6, "echoUtil", 0x2000, &succ);
         }
         else if (type == cd)
@@ -92,6 +75,57 @@ int main()
         }
     }
 }
+
+void split(char *string, char separator, char splitted[64][128])
+{
+	int i, j, k;
+	i = 0;
+	j = 0;
+	k = 0;
+	while (string[i] != '\0')
+	{
+		if (string[i] == separator)
+		{
+			splitted[j][k] = '\0';
+			j += 1;
+			k = 0;
+		}
+		else
+		{
+			splitted[j][k] = string[i];
+			k += 1;
+		}
+		i += 1;
+	}
+	splitted[j][k] = '\0';
+}
+
+void replace(char *s, char cari, char tukar)
+{
+    int length, i;
+    len(s, &length);
+    for(i = 0; i < length; i++)
+    {
+        if(s[i] == cari)
+        {
+            s[i] = tukar;
+        }
+    }
+    s[length] = '\0';
+}
+
+void concat(char *s1, char *s2, char isiNull, int len1)
+{
+    int i;
+    i = 0;
+    while(s2[i] != '\0')
+    {
+        s1[len1+i+isiNull] = s2[i];
+        i+=1;
+    }
+    s1[len1+i+isiNull] = '\0';
+}
+
 int getCommandType(char *s)
 {
     char command[20];
@@ -104,6 +138,8 @@ int getCommandType(char *s)
         idxSpasi = lenS;
     }
     copy(s, command, 0, idxSpasi);
+    // pS("Command : ", FALSE);
+    // pS(command, TRUE);
     if (isSame(command, "echo"))
     {
         return echo;
@@ -161,6 +197,11 @@ void pS(char *string, int newLine)
 void pI(int i, int newLine)
 {
     interrupt(0x21, (0 << 8) | 0x24, i, newLine, 0);
+}
+
+void pC(char c, int newLine)
+{
+    interrupt(0x21, (0 << 8) | 0x25, c, newLine, 0);
 }
 
 void len(char *string, int *length)

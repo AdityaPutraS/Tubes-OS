@@ -37,6 +37,7 @@ void executeProgram(char *path, int segment, int *result, char parentIndex);
 // void printLogo();
 void printStringXY(char *string, int color, int x, int y);
 void printInt(int i, int newLine);
+void printChar(char c, int newLine);
 void split(char *string, char separator, char **splitted);
 void len(char *string, int *length);
 void isSame(char *s1, char *s2, char *result);
@@ -49,24 +50,53 @@ void terminateProgram(int *result);
 void makeDirectory(char *path, int *result, char parentIndex);
 void deleteFile(char *path, int *result, char parentIndex);
 void deleteDirectory(char *path, int *success, char parentIndex);
-void putArgs(char curdir, char argc, char **argv);
+void putArgs(char curdir, char argc, char argv[64][128]);
 void getCurdir(char *curdir);
 void getArgc(char *argc);
 void getArgv(char index, char *argv);
 void readAllSector(char *dirs, char *file, char *map, char *sector);
 void writeAllSector(char *dirs, char *file, char *map, char *sector);
+void replace(char *s, char cari, char tukar);
 
 int main()
 {
 	char buffer[SECTOR_SIZE * MAX_SECTORS];
 	int suc;
-	char input[100];
+	//char argv[64][128];
 	makeInterrupt21();
 	//printLogo();
+	// clear(argv[0],3);
+	// clear(argv[1],3);
+	// clear(argv[2],3);
+	// copy("CO1",argv[0],0,3);
+	// copy("CO2",argv[1],0,3);
+	// copy("CO3",argv[2],0,3);
+	// //replace(argv, 0x20, 0x00);
+	// printString("argv main : ", FALSE);
+	// printString(argv[0], TRUE);
+	// printString("argv main : ", FALSE);
+	// printString(argv[1], TRUE);
+	// printString("argv main : ", FALSE);
+	// printString(argv[2], TRUE);
+	// putArgs(0x00, 0x3, argv);
 	interrupt(0x21, 0xFF << 8 | 0x6, "shell", 0x2000, &suc);
 	while (1)
 	{
 	}
+}
+
+void replace(char *s, char cari, char tukar)
+{
+    int length, i;
+    len(s, &length);
+    for(i = 0; i < length; i++)
+    {
+        if(s[i] == cari)
+        {
+            s[i] = tukar;
+        }
+    }
+    s[length] = '\0';
 }
 
 void printStringXY(char *string, int color, int x, int y)
@@ -141,6 +171,9 @@ void handleInterrupt21(int AX, int BX, int CX, int DX)
 	case 0x24:
 		printInt(BX, CX);
 		break;
+	case 0x25:
+		printChar(BX, CX);
+		break;
 	default:
 		printString("Invalid interrupt", TRUE);
 	}
@@ -162,6 +195,16 @@ void printString(char *string, int newLine)
 }
 
 //////FOR DEBUGGING PURPOSE
+void printChar(char c, int newLine)
+{
+	interrupt(0x10, 0xE00 + c, 0, 0, 0);
+	if (newLine)
+	{
+		interrupt(0x10, 0xE00 + '\n', 0, 0, 0);
+		interrupt(0x10, 0xE00 + '\r', 0, 0, 0);
+	}
+}
+
 void printInt(int i, int newLine)
 {
 	int j;
@@ -323,7 +366,7 @@ void copy(char *string, char *copied, int start, int length)
 {
 	int lenS, i;
 	len(string, &lenS);
-	copied[0] = '\0';
+	clear(copied, lenS);
 	//Validasi start
 	if (start < lenS)
 	{
@@ -336,7 +379,6 @@ void copy(char *string, char *copied, int start, int length)
 				i += 1;
 				length -= 1;
 			}
-			copied[i - start] = '\0';
 		}
 	}
 }
@@ -712,7 +754,7 @@ void deleteDirectory(char *path, int *success, char parentIndex)
 	}
 }
 
-void putArgs(char curdir, char argc, char **argv)
+void putArgs(char curdir, char argc, char argv[64][128])
 {
 	char args[SECTOR_SIZE];
 	int i, j, p;
@@ -722,7 +764,13 @@ void putArgs(char curdir, char argc, char **argv)
 	args[1] = argc;
 	i = 0;
 	j = 0;
-	for (p = 1; p < ARGS_SECTOR && i < argc; ++p)
+	// printString("argc : ", FALSE);
+	// printInt(argc, TRUE);
+	// printString("argv : ", FALSE);
+	// printString(argv[0], TRUE);
+	// printString(argv[1], TRUE);
+	// printString(argv[2], TRUE);
+	for (p = 2; p < ARGS_SECTOR && i < argc; ++p)
 	{
 		args[p] = argv[i][j];
 		if (argv[i][j] == '\0')
@@ -761,7 +809,7 @@ void getArgv(char index, char *argv)
 
 	i = 0;
 	j = 0;
-	for (p = 1; p < ARGS_SECTOR; ++p)
+	for (p = 2; p < ARGS_SECTOR; ++p)
 	{
 		if (i == index)
 		{
