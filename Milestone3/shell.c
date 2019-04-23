@@ -41,29 +41,12 @@ void clear(char *buffer, int length);
 void searchDir(char *dirs, char *relPath, char *index, char *success, char parentIndex);
 void search(char *sector, char awal, char sisanya[15], char *index, char *success);
 
-//-----------------------------------------------------------------------------------------------//
-//-----------------------------------------------------------------------------------------------//
-//-----------------------------------------------------------------------------------------------//
-//-----------------------------------------------------------------------------------------------//
-//-----------------------------------------------------------------------------------------------//
-//-----------------------------------------------------------------------------------------------//
-void interrupt(int a1, int a2, int a3, int a4, int a5); //Biar linter vs code ga nyalahin interrupt, komen kalo mau di compile
-//-----------------------------------------------------------------------------------------------//
-//-----------------------------------------------------------------------------------------------//
-//-----------------------------------------------------------------------------------------------//
-//-----------------------------------------------------------------------------------------------//
-//-----------------------------------------------------------------------------------------------//
-//-----------------------------------------------------------------------------------------------//
-
-
-
 int main() {
-    int b1, b2, i, j, idx, num;
+    int b1, b2, i, j, idx;
     char isExit, curDir, argc, succ, ada, globalPIdx;
-    char inputSeparator[1];
-    char input[100], temp[100], fileName[15];
+    char input[100];
     int inputLen, splitLen;
-    int type, copyStart, copyEnd;
+    int type;
     char argv[64][128];
     char dirs[SECTOR_SIZE];
     char file[SECTOR_SIZE];
@@ -75,7 +58,6 @@ int main() {
     isExit = FALSE;
     while (!isExit) {
         //Get input user
-        background = FALSE;
         interrupt(0x21, (0 << 8) | 0x0, "$ ", 0, 0);
         interrupt(0x21, (0 << 8) | 0x1, &input, 1, 0);
         len(input, &inputLen);
@@ -95,11 +77,20 @@ int main() {
         
         //Get argc dan argv nya
         argc = splitLen;
+        for(i = 0 ; i < 64; i++)
+        {
+            clear(argv[i], 128);
+        }
         split(input, 0x20, argv); // <- get argumen vektor
         //Cek apakah harus paralel
-        if(isSame(argv[argc], "&"))
+        background = FALSE;
+        pS("last : ", FALSE);
+        pS(argv[argc], TRUE);
+        if(argv[argc][0] == '&')
         {
             background = TRUE;
+            clear(argv[argc], 128);
+            argc -= 1;
         }
         if (type == echo) {
             // pS("Command echo", TRUE);
@@ -108,7 +99,7 @@ int main() {
         } else if (type == cd) {
             // pS("Command cd", TRUE);
             if (argc > 1) {
-                pS("Jumlah parameter cd harus 1 atau tidak sama sekali", TRUE);
+                pS("Jumlah parameter cd harus 1 atau ..", TRUE);
             } else if (argc == 0) {
                 curDir = 0xFF;
                 interrupt(0x21, 0x20, curDir, 0, 0);
