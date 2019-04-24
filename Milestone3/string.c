@@ -1,4 +1,48 @@
 #include "string.h"
+
+/**
+ * Mencari sisa bagi dari 2 bilangan
+ */
+int mod(int a, int b)
+{
+	while (a >= b)
+	{
+		a = a - b;
+	}
+	return a;
+}
+
+/**
+ * Mencari hasil bagi 2 bilangan, rounded down
+ */
+int div(int a, int b)
+{
+	int q = 0;
+	while (q * b <= a)
+	{
+		q = q + 1;
+	}
+	return q - 1;
+}
+
+/**
+ * Mencetak string ke layar, jika newLine == TRUE maka akan mencetak \n
+ */
+void printString(char *string, int newLine)
+{
+	int i = 0;
+	while (string[i] != '\0')
+	{
+		interrupt(0x10, 0xE00 + string[i], 0, 0, 0);
+		i = i + 1;
+	}
+	if (newLine)
+	{
+		interrupt(0x10, 0xE00 + '\n', 0, 0, 0);
+		interrupt(0x10, 0xE00 + '\r', 0, 0, 0);
+	}
+}
+
 //////FOR DEBUGGING PURPOSEs
 /**
  * Mencetak char ke layar, jika newLine == TRUE maka akan mencetak \n
@@ -37,6 +81,7 @@ void printInt(int i, int newLine)
 		i = div(i, 10);
 		j -= 1;
 	}
+	// interrupt(0x21, 0x00, digit, newLine, 0);
 	printString(digit, newLine);
 }
 //////////////////////////

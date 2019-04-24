@@ -1,20 +1,20 @@
 #define MAX_BYTE 256
 #define SECTOR_SIZE 512
-#define MAX_SECTORS 16		 //Ditambah agar sesuai spek
-#define MAX_DIRS 32			 //Ditambah agar sesuai spek
-#define MAX_DIRSNAME 15		 //Ditambah agar sesuai spek
-#define MAP_SECTOR 0x100	 //Diubah agar sesuai spek
-#define DIRS_SECTOR 0x101	//Diubah agar sesuai spek
-#define FILES_SECTOR 0x102   //Ditambah agar sesuai spek
+#define MAX_SECTORS 16			 //Ditambah agar sesuai spek
+#define MAX_DIRS 32					 //Ditambah agar sesuai spek
+#define MAX_DIRSNAME 15			 //Ditambah agar sesuai spek
+#define MAP_SECTOR 0x100		 //Diubah agar sesuai spek
+#define DIRS_SECTOR 0x101		 //Diubah agar sesuai spek
+#define FILES_SECTOR 0x102	 //Ditambah agar sesuai spek
 #define SECTORS_SECTOR 0x103 //Ditambah agar sesuai spek
-#define MAX_FILENAME 15		 //Diubah agar sesuai spek
-#define MAX_FILES 32		 //Diubah agar sesuai spek
-#define ROOT 0xFF			 //Ditambah agar sesuai spek
+#define MAX_FILENAME 15			 //Diubah agar sesuai spek
+#define MAX_FILES 32				 //Diubah agar sesuai spek
+#define ROOT 0xFF						 //Ditambah agar sesuai spek
 #define TRUE 1
 #define FALSE 0
 #define INSUFFICIENT_SECTORS 0
 #define INSUFFICIENT_ENTRIES -3 //Ditambah agar sesuai spek
-#define ALREADY_EXISTS -2		//Ditambah agar sesuai spek
+#define ALREADY_EXISTS -2				//Ditambah agar sesuai spek
 #define NOT_FOUND -1
 #define INSUFFICIENT_DIR_ENTRIES -1
 #define EMPTY 0x00
@@ -32,9 +32,9 @@
 void handleTimerInterrupt(int segment, int stackPointer);
 void yieldControl();
 void sleep();
-void pauseProcess (int segment, int *result);
-void resumeProcess (int segment, int *result);
-void killProcess (int segment, int *result);
+void pauseProcess(int segment, int *result);
+void resumeProcess(int segment, int *result);
+void killProcess(int segment, int *result);
 void handleInterrupt21(int AX, int BX, int CX, int DX);
 void printString(char *string, int newLine);
 void readString(char *string, int disableProcessControls);
@@ -52,27 +52,23 @@ void terminateProgram(int *result);
 void makeDirectory(char *path, int *result, char parentIndex);
 void deleteFile(char *path, int *result, char parentIndex);
 void deleteDirectory(char *path, int *success, char parentIndex);
-void putArgs(char curdir, char argc, char argv[64][128]);
-void getCurdir(char *curdir);
-void getArgc(char *argc);
-void getArgv(char index, char *argv);
 void readAllSector(char *dirs, char *file, char *map, char *sector);
 void writeAllSector(char *dirs, char *file, char *map, char *sector);
-
+void showProcess();
 
 int main()
 {
-	char buffer[SECTOR_SIZE];
+	char buffer[16 * SECTOR_SIZE];
 	char suc;
-	int i;
-	char pathSplitted[MAX_DIRS][MAX_DIRSNAME];
-	char temp[30], temp2[30];
+	// int i;
+	// char pathSplitted[MAX_DIRS][MAX_DIRSNAME];
+	// char temp[30], temp2[30];
 	initializeProcStructures();
 	makeInterrupt21();
 	makeTimerInterrupt();
 	// printLogo();
 	putArgs(0xFF, 0, 0);
-	
+
 	interrupt(0x21, 0x00 << 8 | 0x6, "shell", &suc, 0xFF);
 	while (1)
 	{
@@ -134,70 +130,134 @@ void handleTimerInterrupt(int segment, int stackPointer)
 	returnFromTimer(segment, stackPointer);
 }
 
-void yieldControl() {
-  interrupt(0x08, 0, 0, 0, 0);
+void yieldControl()
+{
+	interrupt(0x08, 0, 0, 0, 0);
 }
 
-void sleep() {
-  setKernelDataSegment();
+void sleep()
+{
+	setKernelDataSegment();
 
-  running->state = PAUSED;
+	running->state = PAUSED;
 
-  restoreDataSegment();
-  yieldControl();
-} 
-
-void pauseProcess (int segment, int *result) {
-  struct PCB *pcb;
-  int res;
-
-  setKernelDataSegment();
-
-  pcb = getPCBOfSegment(segment);
-  if (pcb != NULL && pcb->state != PAUSED) {
-    pcb->state = PAUSED; res = SUCCESS;
-  } else {
-    res = NOT_FOUND;
-  }
-
-  restoreDataSegment();
-  *result = res;
+	restoreDataSegment();
+	yieldControl();
 }
 
-void resumeProcess (int segment, int *result) {
-  struct PCB *pcb;
-  int res;
-  setKernelDataSegment();
+void pauseProcess(int segment, int *result)
+{
+	struct PCB *pcb;
+	int res;
 
-  pcb = getPCBOfSegment(segment);
-  if (pcb != NULL && pcb->state == PAUSED) {
-    pcb->state = READY;
-    addToReady(pcb);
-    res = SUCCESS;
-  } else {
-    res = NOT_FOUND;
-  }
+	setKernelDataSegment();
 
-  restoreDataSegment();
-  *result = res;
+	pcb = getPCBOfSegment(segment);
+	if (pcb != NULL && pcb->state != PAUSED)
+	{
+		pcb->state = PAUSED;
+		res = SUCCESS;
+	}
+	else
+	{
+		res = NOT_FOUND;
+	}
+
+	restoreDataSegment();
+	*result = res;
 }
 
-void killProcess (int segment, int *result) {
-  struct PCB *pcb;
-  int res;
-  setKernelDataSegment();
+void resumeProcess(int segment, int *result)
+{
+	struct PCB *pcb;
+	int res;
+	setKernelDataSegment();
+	printChar('0'+(segment>>12), TRUE);
+	pcb = getPCBOfSegment(segment);
+	if (pcb != NULL && pcb->state == PAUSED)
+	{
+		pcb->state = READY;
+		addToReady(pcb);
+		res = SUCCESS;
+	}
+	else
+	{
+		res = NOT_FOUND;
+	}
 
-  pcb = getPCBOfSegment(segment);
-  if (pcb != NULL) {
-    releaseMemorySegment(pcb->segment);
-    releasePCB(pcb);
-    res = SUCCESS;
-  } else {
-    res = NOT_FOUND;
-  }
+	restoreDataSegment();
+	*result = res;
+}
 
-  restoreDataSegment();
-  *result = res;
+void killProcess(int segment, int *result)
+{
+	struct PCB *pcb;
+	int res;
+	setKernelDataSegment();
+
+	pcb = getPCBOfSegment(segment);
+	if (pcb != NULL)
+	{
+		releaseMemorySegment(pcb->segment);
+		releasePCB(pcb);
+		res = SUCCESS;
+	}
+	else
+	{
+		res = NOT_FOUND;
+	}
+
+	restoreDataSegment();
+	*result = res;
+}
+
+void showProcess()
+{
+	int i, seg;
+	char fileIdx;
+	char *sep;
+	sep = " = ";
+	setKernelDataSegment();
+	for (i = 0; i < MAX_SEGMENTS; i++)
+	{
+		if (memoryMap[i] == SEGMENT_USED)
+		{
+			//Get index & status
+			fileIdx = pcbPool[i].index;
+			seg = (pcbPool[i].segment >> 12) - 2;
+			printChar('0' + seg, FALSE);
+			printString(sep, FALSE);
+			printString(pcbPool[i].namaProg, TRUE);
+		}
+	}
+	restoreDataSegment();
+	// char files[SECTOR_SIZE];
+	// int i;
+	// char temp1;
+	// unsigned int temp2;
+	// char *temp3;
+	// readSector(files, FILES_SECTOR);
+	// setKernelDataSegment();
+	// for (i = 0; i < MAX_SEGMENTS; ++i)
+	// {
+	// 	if (memoryMap[i] == SEGMENT_USED)
+	// 	{
+	// 		temp1 = pcbPool[i].index;
+	// 		temp3 = "  |  ";
+	// 		restoreDataSegment();
+	// 		setKernelDataSegment();
+	// 		temp2 = (pcbPool[i].segment >> 12) - 2;
+	// 		printChar('0' + temp2, FALSE);
+	// 		restoreDataSegment();
+	// 		setKernelDataSegment();
+	// 		printString(temp3, FALSE);
+	// 		restoreDataSegment();
+	// 		readSector(files, FILES_SECTOR);
+	// 		printString(files + temp1 * MAX_FILENAME + 1, TRUE);
+	// 		setKernelDataSegment();
+	// 	}
+	// }
+	// restoreDataSegment();
 }
 
 //////////////////////////////////////////////////////////
@@ -283,30 +343,13 @@ void handleInterrupt21(int AX, int BX, int CX, int DX)
 	case 0x34:
 		killProcess(BX, CX);
 		break;
+	case 0x35:
+		showProcess();
+		break;
 	default:
-		printString("Invalid interrupt", TRUE);
+		printChar('F', TRUE);
 	}
 }
-
-/**
- * Mencetak string ke layar, jika newLine == TRUE maka akan mencetak \n
- */
-void printString(char *string, int newLine)
-{
-	int i = 0;
-	while (string[i] != '\0')
-	{
-		interrupt(0x10, 0xE00 + string[i], 0, 0, 0);
-		i = i + 1;
-	}
-	if (newLine)
-	{
-		interrupt(0x10, 0xE00 + '\n', 0, 0, 0);
-		interrupt(0x10, 0xE00 + '\r', 0, 0, 0);
-	}
-}
-
-
 
 /**
  * Mencetak string dari user, akan berhenti membaca ketika enter ditekan
@@ -314,35 +357,31 @@ void printString(char *string, int newLine)
 void readString(char *string, int disableProcessControls)
 {
 	int suc;
-	char gagal[6];
 	int i = 0;
 	char c = 0;
-	gagal[0] = 'g';
-	gagal[1] = 'a';
-	gagal[2] = 'g';
-	gagal[3] = 'a';
-	gagal[4] = 'l';
-	gagal[5] = '\0';
 	string[0] = '\0';
 	while (c != '\r')
 	{
 		c = interrupt(0x16, 0, 0, 0, 0);
 		//Ctrl+c = sleep
 		//Ctrl+z = resume
-		if(c == 0x3 && !disableProcessControls)
+		if (c == 0x3 && !disableProcessControls)
 		{
 			setKernelDataSegment();
-			printString("Terminated", TRUE);			
+			printChar('T', TRUE);
 			restoreDataSegment();
 			terminateProgram(&suc);
-		}else if(c == 0x1A && !disableProcessControls)
+		}
+		else if (c == 0x1A && !disableProcessControls)
 		{
-			setKernelDataSegment();		
-			printString("Suspend", TRUE);	
-			restoreDataSegment();				
+			setKernelDataSegment();
+			printChar('S', TRUE);
+			restoreDataSegment();
 			sleep();
 			resumeProcess(0x2000, &suc);
-		}else{
+		}
+		else
+		{
 			if (c == '\r')
 			{
 				string[i] = '\0';
@@ -374,39 +413,14 @@ void readString(char *string, int disableProcessControls)
 }
 
 /**
- * Mencari sisa bagi dari 2 bilangan
- */
-int mod(int a, int b)
-{
-	while (a >= b)
-	{
-		a = a - b;
-	}
-	return a;
-}
-
-/**
- * Mencari hasil bagi 2 bilangan, rounded down
- */
-int div(int a, int b)
-{
-	int q = 0;
-	while (q * b <= a)
-	{
-		q = q + 1;
-	}
-	return q - 1;
-}
-
-/**
  * Membaca sektor ke (int) sector lalu memasukkan isinya kedalam (char*) buffer,
  * implementasi memanfaatkan interrupt nomor 0x13
  */
 void readSector(char *buffer, int sector)
 {
 	interrupt(0x13, 0x201, buffer,
-			  div(sector, 36) * 0x100 + mod(sector, 18) + 1,
-			  mod(div(sector, 18), 2) * 0x100);
+						div(sector, 36) * 0x100 + mod(sector, 18) + 1,
+						mod(div(sector, 18), 2) * 0x100);
 }
 
 /**
@@ -416,8 +430,8 @@ void readSector(char *buffer, int sector)
 void writeSector(char *buffer, int sector)
 {
 	interrupt(0x13, 0x301, buffer,
-			  div(sector, 36) * 0x100 + mod(sector, 18) + 1,
-			  mod(div(sector, 18), 2) * 0x100);
+						div(sector, 36) * 0x100 + mod(sector, 18) + 1,
+						mod(div(sector, 18), 2) * 0x100);
 }
 
 /** Membaca sektor dirs, file, map, dan sector lalu memasukkannya ke buffer yang sesuai */
@@ -443,7 +457,8 @@ void readFile(char *buffer, char *path, int *result, char parentIndex)
 {
 	//Baca sector dirs
 	char dirs[SECTOR_SIZE], file[SECTOR_SIZE], sector[SECTOR_SIZE];
-	int iterSector, idxFile;
+	int iterSector;
+	char idxFile;
 	char succ;
 	interrupt(0x21, 0x02, dirs, DIRS_SECTOR, 0);
 	interrupt(0x21, 0x02, file, FILES_SECTOR, 0);
@@ -493,7 +508,7 @@ void writeFile(char *buffer, char *path, int *sectors, char parentIndex)
 	int i, cntMapKosong, lenBuffer, lenFileName;
 	int iterMap;
 	int idxFile;
-	char succ;
+	char succ, idxCari;
 	char parentFile;
 	int divBuffSec;
 	readAllSector(dirs, file, map, sector);
@@ -507,7 +522,7 @@ void writeFile(char *buffer, char *path, int *sectors, char parentIndex)
 			cntMapKosong += 1;
 		}
 	}
-	len(buffer, lenBuffer);
+	len(buffer, &lenBuffer);
 	divBuffSec = div(lenBuffer, SECTOR_SIZE);
 	if (divBuffSec <= 0)
 	{
@@ -537,7 +552,7 @@ void writeFile(char *buffer, char *path, int *sectors, char parentIndex)
 			if (succ)
 			{
 				//Cek apakah filenya sudah ada / tidak
-				searchFile(dirs, file, path, &i, &succ, parentIndex);
+				searchFile(dirs, file, path, &idxCari, &succ, parentIndex);
 				if (succ)
 				{
 					*sectors = ALREADY_EXISTS;
@@ -591,61 +606,71 @@ void writeFile(char *buffer, char *path, int *sectors, char parentIndex)
 }
 
 /** Invoke program yang terdapat dalam path tertentu yang dijalankan pada segment tertentu */
-void executeProgram (char *path, int *result, char parentIndex, int background) {
-  struct PCB* pcb;
-  int segment;
-  int i, fileIndex;
-  char buffer[MAX_SECTORS * SECTOR_SIZE];
-  readFile(buffer, path, result, parentIndex);
+void executeProgram(char *path, int *result, char parentIndex, int background)
+{
+	struct PCB *pcb;
+	int segment;
+	int i, fileIndex;
+	char buffer[MAX_SECTORS * SECTOR_SIZE];
+	readFile(buffer, path, result, parentIndex);
+	if (*result != NOT_FOUND)
+	{
+		setKernelDataSegment();
+		segment = getFreeMemorySegment();
+		restoreDataSegment();
 
-  if (*result != NOT_FOUND) {
-    setKernelDataSegment();
-    segment = getFreeMemorySegment();
-    restoreDataSegment();
+		fileIndex = *result;
+		if (segment != NO_FREE_SEGMENTS)
+		{
+			setKernelDataSegment();
 
-    fileIndex = *result;
-    if (segment != NO_FREE_SEGMENTS) {
-      setKernelDataSegment();
+			pcb = getFreePCB();
+			for(i = 0; i < 32 && path[i] != '\0'; i++)
+			{
+				pcb->namaProg[i] = path[i];
+			}
+			pcb->index = fileIndex;
+			pcb->state = STARTING;
+			pcb->segment = segment;
+			pcb->stackPointer = 0xFF00;
+			pcb->parentSegment = running->segment;
+			addToReady(pcb);
 
-      pcb = getFreePCB();
-      pcb->index = fileIndex;
-      pcb->state = STARTING;
-      pcb->segment = segment;
-      pcb->stackPointer = 0xFF00;
-      pcb->parentSegment = running->segment;
-      addToReady(pcb);
-
-      restoreDataSegment();
-      for (i = 0; i < SECTOR_SIZE * MAX_SECTORS; i++) {
-        putInMemory(segment, i, buffer[i]);
-      }
-      initializeProgram(segment);
-	  if(!background){
-      	sleep();
-	  }
-    } else {
-      *result = INSUFFICIENT_SEGMENTS;
-    }
-  }
+			restoreDataSegment();
+			for (i = 0; i < SECTOR_SIZE * MAX_SECTORS; i++)
+			{
+				putInMemory(segment, i, buffer[i]);
+			}
+			initializeProgram(segment);
+			if (!background)
+			{
+				sleep();
+			}
+		}
+		else
+		{
+			*result = INSUFFICIENT_SEGMENTS;
+		}
+	}
 }
 
-
 /** Mematikan program yang sedang berjalan dan menjalankan shell */
-void terminateProgram (int *result) {
-  int parentSegment;
-  setKernelDataSegment();
+void terminateProgram(int *result)
+{
+	int parentSegment;
+	setKernelDataSegment();
 
-  parentSegment = running->parentSegment;
-  releaseMemorySegment(running->segment);
-  releasePCB(running);
+	parentSegment = running->parentSegment;
+	releaseMemorySegment(running->segment);
+	releasePCB(running);
 
-  restoreDataSegment();
-  if (parentSegment != NO_PARENT) {
-    resumeProcess(parentSegment, result);
-  }
-  yieldControl();
-} 
-
+	restoreDataSegment();
+	if (parentSegment != NO_PARENT)
+	{
+		resumeProcess(parentSegment, result);
+	}
+	yieldControl();
+}
 
 /** Membuat directory sesuai path tertentu */
 void makeDirectory(char *path, int *result, char parentIndex)
@@ -654,7 +679,8 @@ void makeDirectory(char *path, int *result, char parentIndex)
 	char dirPath[MAX_DIRS * (MAX_DIRSNAME + 1)];
 	char folderName[MAX_DIRSNAME];
 	int lenFolderName;
-	int iterDirs, temp, idxParent;
+	int iterDirs;
+	char idxParent, temp;
 	char succ;
 	interrupt(0x21, 0x02, dirs, DIRS_SECTOR, 0);
 	// readSector(dirs, DIRS_SECTOR);
@@ -692,12 +718,12 @@ void makeDirectory(char *path, int *result, char parentIndex)
 				len(folderName, &lenFolderName);
 				for (temp = 0; temp < lenFolderName; temp++)
 				{
-					dirs[iterDirs * (MAX_DIRSNAME + 1) + temp + 1] = folderName[temp];
+					dirs[iterDirs * (MAX_DIRSNAME + 1) + temp + 1] = folderName[(int)temp];
 				}
-				if (lenFolderName < 15)
-				{
-					dirs[iterDirs * (MAX_DIRSNAME + 1) + temp + 1] = '\0';
-				}
+				// if (lenFolderName < 15)
+				// {
+				// 	dirs[iterDirs * (MAX_DIRSNAME + 1) + temp + 1] = '\0';
+				// }
 				interrupt(0x21, 0x03, dirs, DIRS_SECTOR, 0);
 				// writeSector(dirs, DIRS_SECTOR);
 				*result = 0; //Success
@@ -715,12 +741,10 @@ void makeDirectory(char *path, int *result, char parentIndex)
 void deleteFile(char *path, int *result, char parentIndex)
 {
 	char dirs[SECTOR_SIZE], file[SECTOR_SIZE], map[SECTOR_SIZE], sector[SECTOR_SIZE];
-	int idxFile, iterSector;
+	int iterSector;
+	char idxFile;
 	char succ;
-	interrupt(0x21, 0x02, dirs, DIRS_SECTOR, 0);
-	interrupt(0x21, 0x02, file, FILES_SECTOR, 0);
-	interrupt(0x21, 0x02, map, MAP_SECTOR, 0);
-	interrupt(0x21, 0x02, sector, SECTORS_SECTOR, 0);
+	readAllSector(dirs, file, map, sector);
 	searchFile(dirs, file, path, &idxFile, &succ, parentIndex);
 	if (succ)
 	{
@@ -728,13 +752,10 @@ void deleteFile(char *path, int *result, char parentIndex)
 		file[(idxFile * (MAX_FILENAME + 1)) + 1] = 0x00;
 		for (iterSector = 0; (iterSector < MAX_SECTORS) && (sector[idxFile * MAX_SECTORS + iterSector] != 0x00); iterSector++)
 		{
-			map[sector[idxFile * MAX_SECTORS + iterSector]] = 0x00;
-			sector[idxFile * MAX_SECTORS + iterSector] = 0x00;
+			map[(int)sector[idxFile * MAX_SECTORS + iterSector]] = 0x00;
+			sector[(int)idxFile * MAX_SECTORS + iterSector] = 0x00;
 		}
-		interrupt(0x21, 0x03, dirs, DIRS_SECTOR, 0);
-		interrupt(0x21, 0x03, file, FILES_SECTOR, 0);
-		interrupt(0x21, 0x03, map, MAP_SECTOR, 0);
-		interrupt(0x21, 0x03, sector, SECTORS_SECTOR, 0);
+		writeAllSector(dirs, file, map, sector);
 		*result = 0; //Success
 	}
 	else
@@ -761,14 +782,12 @@ void deleteDirectory(char *path, int *success, char parentIndex)
 {
 	char dirs[SECTOR_SIZE], file[SECTOR_SIZE], map[SECTOR_SIZE], sector[SECTOR_SIZE];
 	char copied[15];
-	int idxFolder, iterFile, iterSector, iterDirs, j;
+	int iterFile, iterSector, iterDirs, j;
+	char idxFolder;
 	char succ;
 	// printString("Menghapus : ", FALSE);
 	// printString(path, TRUE);
-	interrupt(0x21, 0x02, dirs, DIRS_SECTOR, 0);
-	interrupt(0x21, 0x02, file, FILES_SECTOR, 0);
-	interrupt(0x21, 0x02, map, MAP_SECTOR, 0);
-	interrupt(0x21, 0x02, sector, SECTORS_SECTOR, 0);
+	readAllSector(dirs, file, map, sector);
 	searchDir(dirs, path, &idxFolder, &succ, parentIndex);
 	if (succ)
 	{
@@ -787,10 +806,7 @@ void deleteDirectory(char *path, int *success, char parentIndex)
 					copied[j] = dirs[iterDirs + j + 1];
 				}
 				deleteDirectory(copied, success, idxFolder);
-				interrupt(0x21, 0x02, dirs, DIRS_SECTOR, 0);
-				interrupt(0x21, 0x02, file, FILES_SECTOR, 0);
-				interrupt(0x21, 0x02, map, MAP_SECTOR, 0);
-				interrupt(0x21, 0x02, sector, SECTORS_SECTOR, 0);
+				readAllSector(dirs, file, map, sector);
 			}
 		}
 		//////////////////////////////////////////////////////////
@@ -808,7 +824,7 @@ void deleteDirectory(char *path, int *success, char parentIndex)
 				file[iterFile + 1] = 0x00;
 				for (iterSector = 0; (iterSector < MAX_SECTORS) && (sector[iterFile * MAX_SECTORS + iterSector] != 0x00); iterSector++)
 				{
-					map[sector[iterFile * MAX_SECTORS + iterSector]] = 0x00;
+					map[(int)sector[iterFile * MAX_SECTORS + iterSector]] = 0x00;
 					sector[iterFile * MAX_SECTORS + iterSector] = 0x00;
 				}
 			}
@@ -817,84 +833,11 @@ void deleteDirectory(char *path, int *success, char parentIndex)
 		// printInt(idxFolder, TRUE);
 		dirs[(idxFolder * 16)] = 0x00;
 		dirs[(idxFolder * 16) + 1] = 0x00;
-		interrupt(0x21, 0x03, dirs, DIRS_SECTOR, 0);
-		interrupt(0x21, 0x03, file, FILES_SECTOR, 0);
-		interrupt(0x21, 0x03, map, MAP_SECTOR, 0);
-		interrupt(0x21, 0x03, sector, SECTORS_SECTOR, 0);
+		writeAllSector(dirs, file, map, sector);
 		*success = 0; //Sucess
 	}
 	else
 	{
 		*success = NOT_FOUND;
-	}
-}
-
-void putArgs(char curdir, char argc, char argv[64][128])
-{
-	char args[SECTOR_SIZE];
-	int i, j, p;
-	clear(args, SECTOR_SIZE);
-
-	args[0] = curdir;
-	args[1] = argc;
-	i = 0;
-	j = 0;
-
-	for (p = 2; p < ARGS_SECTOR && i < argc; ++p)
-	{
-		args[p] = argv[i][j];
-		if (argv[i][j] == '\0')
-		{
-			++i;
-			j = 0;
-		}
-		else
-		{
-			++j;
-		}
-	}
-	writeSector(args, ARGS_SECTOR);
-}
-
-void getCurdir(char *curdir)
-{
-	char args[SECTOR_SIZE];
-	readSector(args, ARGS_SECTOR);
-	*curdir = args[0];
-}
-
-void getArgc(char *argc)
-{
-	char args[SECTOR_SIZE];
-	readSector(args, ARGS_SECTOR);
-	*argc = args[1];
-}
-
-void getArgv(char index, char *argv)
-{
-	char args[SECTOR_SIZE];
-	int i, j, p;
-	readSector(args, ARGS_SECTOR);
-	i = 0;
-	j = 0;
-	for (p = 2; p < ARGS_SECTOR; ++p)
-	{
-		if (i == index)
-		{
-			argv[j] = args[p];
-			++j;
-		}
-
-		if (args[p] == '\0')
-		{
-			if (i == index)
-			{
-				break;
-			}
-			else
-			{
-				++i;
-			}
-		}
 	}
 }

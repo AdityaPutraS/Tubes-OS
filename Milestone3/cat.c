@@ -5,10 +5,11 @@
 #define SECTOR_SIZE 512
 #define MAX_SECTORS 16	
 
+#include "dir.h"
+
 void pS(char *string, int newLine);
 void pI(int i, int newLine);
 void pC(char c, int newLine);
-void clear(char *buffer, int length);
 
 int main()
 {
@@ -20,12 +21,16 @@ int main()
     char temp;
     int berhasil;
     enableInterrupts();
-    interrupt(0x21, 0x21, &curdir, 0, 0);
-    interrupt(0x21, 0x22, &argc, 0, 0);
-    interrupt(0x21, 0x23, 0, argv[0], 0);   // nama folder / path relatif folder
+    getCurdir(&curdir);
+    // interrupt(0x21, 0x21, &curdir, 0, 0);
+    getArgc(&argc);
+    // interrupt(0x21, 0x22, &argc, 0, 0);
+    getArgv(0, argv[0]);
+    // interrupt(0x21, 0x23, 0, argv[0], 0);   // nama folder / path relatif folder
     if(argc == 2)
     {
-        interrupt(0x21, 0x23, 1, argv[1], 0); //parameter -w
+        getArgv(1, argv[1]);
+        // interrupt(0x21, 0x23, 1, argv[1], 0); //parameter -w
         //Cek apakah -w
         if(argv[1][0] == '-' && argv[1][1] == 'w' && argv[1][2] == '\0')
         {
@@ -67,7 +72,8 @@ int main()
         }
     }
     //Keluar dari sini
-    interrupt(0x21, 0x20, curdir, 0, 0);
+    putArgs(curdir, 0, 0);
+    // interrupt(0x21, 0x20, curdir, 0, 0);
 	interrupt(0x21, 0x7, &temp, 0, 0);
 }
 
@@ -84,13 +90,4 @@ void pI(int i, int newLine)
 void pC(char c, int newLine)
 {
     interrupt(0x21, (0 << 8) | 0x25, c, newLine, 0);
-}
-
-void clear(char *buffer, int length)
-{
-	int i;
-	for (i = 0; i < length; ++i)
-	{
-		buffer[i] = EMPTY;
-	}
 }

@@ -4,6 +4,15 @@
 #define MAX_DIRSNAME 15		 //Ditambah agar sesuai spek
 #define MAX_FILENAME 15		 //Diubah agar sesuai spek
 
+void clear(char *buffer, int length)
+{
+	int i;
+	for (i = 0; i < length; ++i)
+	{
+		buffer[i] = EMPTY;
+	}
+}
+
 /** 
  * Mencari keberadaan sebuah(string) pada suatu sector
  * Biasanya digunakan untuk searching pada sector, dirs (0x101) dan files (0x102)
@@ -120,5 +129,79 @@ void searchFile(char *dirs, char *file, char *relPath, char *index, char *succes
 	if (*success)
 	{
 		search(file, idxDir, fileName, index, success);
+	}
+}
+
+void putArgs(char curdir, char argc, char argv[64][128])
+{
+	char args[SECTOR_SIZE];
+	int i, j, p;
+	clear(args, SECTOR_SIZE);
+
+	args[0] = curdir;
+	args[1] = argc;
+	i = 0;
+	j = 0;
+
+	for (p = 2; p < ARGS_SECTOR && i < argc; ++p)
+	{
+		args[p] = argv[i][j];
+		if (argv[i][j] == '\0')
+		{
+			++i;
+			j = 0;
+		}
+		else
+		{
+			++j;
+		}
+	}
+	interrupt(0x21, 0x03, args, ARGS_SECTOR, 0);
+	// writeSector(args, ARGS_SECTOR);
+}
+
+void getCurdir(char *curdir)
+{
+	char args[SECTOR_SIZE];
+	interrupt(0x21, 0x02, args, ARGS_SECTOR, 0);
+	//readSector(args, ARGS_SECTOR);
+	*curdir = args[0];
+}
+
+void getArgc(char *argc)
+{
+	char args[SECTOR_SIZE];
+	interrupt(0x21, 0x03, args, ARGS_SECTOR, 0);
+	//readSector(args, ARGS_SECTOR);
+	*argc = args[1];
+}
+
+void getArgv(char index, char *argv)
+{
+	char args[SECTOR_SIZE];
+	int i, j, p;
+	interrupt(0x21, 0x02, args, ARGS_SECTOR, 0);
+	// readSector(args, ARGS_SECTOR);
+	i = 0;
+	j = 0;
+	for (p = 2; p < ARGS_SECTOR; ++p)
+	{
+		if (i == index)
+		{
+			argv[j] = args[p];
+			++j;
+		}
+
+		if (args[p] == '\0')
+		{
+			if (i == index)
+			{
+				break;
+			}
+			else
+			{
+				++i;
+			}
+		}
 	}
 }

@@ -42,8 +42,8 @@ void searchDir(char *dirs, char *relPath, char *index, char *success, char paren
 void search(char *sector, char awal, char sisanya[15], char *index, char *success);
 
 int main() {
-    int b1, b2, i, j, idx;
-    char isExit, curDir, argc, succ, ada, globalPIdx;
+    int b1, b2;
+    char i, isExit, curDir, argc, succ, ada, globalPIdx, idx;
     char input[100];
     int inputLen, splitLen;
     int type;
@@ -51,7 +51,6 @@ int main() {
     char dirs[SECTOR_SIZE];
     char file[SECTOR_SIZE];
     int konstantaRun;
-    char same;
     int background;
 
     enableInterrupts();
@@ -79,19 +78,19 @@ int main() {
         argc = splitLen;
         for(i = 0 ; i < 64; i++)
         {
-            clear(argv[i], 128);
+            clear(argv[(int)i], 128);
         }
         split(input, 0x20, argv); // <- get argumen vektor
         //Cek apakah harus paralel
         background = FALSE;
         pS("last : ", FALSE);
-        pS(argv[argc], TRUE);
-        if(argv[argc][0] == '&')
-        {
-            background = TRUE;
-            clear(argv[argc], 128);
-            argc -= 1;
-        }
+        pS(argv[(int)argc], TRUE);
+        // if(argv[(int)argc][0] == '&')
+        // {
+        //     background = TRUE;
+        //     clear(argv[(int)argc], 128);
+        //     argc -= 1;
+        // }
         if (type == echo) {
             // pS("Command echo", TRUE);
             interrupt(0x21, 0x20, curDir, argc, argv + 1);
@@ -188,14 +187,15 @@ int main() {
         }
         else if (type == ps) {
             // pS("Command ps", TRUE);
-            if (argc != 1)
+            if (argc != 0)
             {
-                pS("Jumlah parameter ps harus 1", TRUE);
+                pS("Jumlah parameter ps harus 0", TRUE);
             }
             else
             {
                 interrupt(0x21, 0x20, curDir, argc, argv + 1);
-                interrupt(0x21, background << 8 | 0x6, "ps", &succ, 0xFF);
+                interrupt(0x21, 0x35, 0, 0, 0);
+                //interrupt(0x21, background << 8 | 0x6, "ps", &succ, 0xFF);
             }
         }
         else if (type == pause) {
@@ -212,7 +212,7 @@ int main() {
                     pS("Tidak bisa pause shell", TRUE);
                 }else{
                     //Coba pause process tersebut
-                    interrupt(0x21, 0x32, (argv[0][0] - '0' + 2) * 0x1000, &succ, 0);
+                    interrupt(0x21, 0x32, (argv[1][0] - '0' + 2) * 0x1000, &succ, 0);
                     //+2 karena pid 0 = segment 2
                     if(succ == NOT_FOUND)
                     {
@@ -230,7 +230,7 @@ int main() {
             else
             {
                 //Coba pause process tersebut
-                interrupt(0x21, 0x33, (argv[0][0] - '0' + 2) * 0x1000, &succ, 0);
+                interrupt(0x21, 0x33, (argv[1][0] - '0' + 2) * 0x1000, &succ, 0);
                 if(succ == NOT_FOUND)
                 {
                     pS("Tidak ada process dengan pid itu", TRUE);
@@ -254,7 +254,7 @@ int main() {
                     pS("Tidak bisa kill shell", TRUE);
                 }else{
                     //Coba kill process tersebut
-                    interrupt(0x21, 0x34, (argv[0][0] - '0' + 2) * 0x1000, &succ, 0);
+                    interrupt(0x21, 0x34, (argv[1][0] - '0' + 2) * 0x1000, &succ, 0);
                     //+2 karena pid 0 = segment 2
                     if(succ == NOT_FOUND)
                     {
@@ -430,8 +430,7 @@ void concat(char *s1, char *s2, char isiNull, int len1)
 int getCommandType(char *s)
 {
     char command[20];
-    int idxCom, lenS;
-    char sama;
+    int lenS;
     int idxSpasi = find(s, 0x20);
     len(s, &lenS);
     if (idxSpasi == -1)
@@ -532,7 +531,6 @@ void len(char *string, int *length)
 
 void count(char *string, char c, int *banyak)
 {
-    char temp[2];
     int i = 0;
     *banyak = 0;
     while (string[i] != '\0')

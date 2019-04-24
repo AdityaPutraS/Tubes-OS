@@ -37,7 +37,7 @@ struct PCB {
   int segment;		// memory segment occupied by the process.
 	int stackPointer;	// address of the stack pointer for the process.
   int parentSegment;
-	
+	char namaProg[32];
 	/*
 	 * Pointers to allow PCBs to be stored in doubly linked lists.
  	 */

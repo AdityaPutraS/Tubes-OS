@@ -1,4 +1,5 @@
 #include "proc.h"
+#include "string.h"
 
 /*
  * This function initializes all of the global variables and 
@@ -20,6 +21,7 @@ void initializeProcStructures() {
     int i;
   
     for(i = 0; i < MAX_SEGMENTS; ++i) {
+			  pcbPool[i].namaProg[0] = '\0';
         pcbPool[i].index = EMPTY_INDEX;
         pcbPool[i].state = DEFUNCT;
         pcbPool[i].segment = 0x00;
@@ -31,6 +33,7 @@ void initializeProcStructures() {
      * The PCB for the idle process should be initialized with the name IDLE, 
      * the state READY, and both the segment and stack pointers set to 0x00.
      */
+		idleProc.namaProg[0] = '\0';
     idleProc.index = EMPTY_INDEX;
     idleProc.state = READY;
     idleProc.segment = 0x00;
